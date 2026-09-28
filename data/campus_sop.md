@@ -12,11 +12,13 @@
 **Title:** Suspected Electrical Fire / Smoke in Electrical Room
 **Procedure:**
 1. Upon report of smoke or burning odor near electrical rooms or breaker panels, treat as suspected electrical fire.
-2. Do not attempt to extinguish suspected electrical fires with water or aqueous foam.
-3. Evacuate the immediate sector and alert the floor warden.
-4. Cut main circuit breakers to the sector only if the electrical panel is safely accessible without entering smoke.
-5. Call campus security dispatch (ext: 101) reporting exact block and room identifiers.
-6. Secure the fire door to starve oxygen; do not re-enter until emergency clearance is issued.
+2. Restrict access to the electrical room corridor.
+3. Dispatch a guard to verify the alarm status at the source.
+4. Do not attempt to extinguish suspected electrical fires with water or aqueous foam.
+5. Evacuate the immediate sector and alert the floor warden.
+6. Cut main circuit breakers to the sector only if the electrical panel is safely accessible without entering smoke.
+7. Call campus security dispatch (ext: 101) reporting exact block and room identifiers.
+8. Secure the fire door to starve oxygen; do not re-enter until emergency clearance is issued.
 
 ## CAMPUS-FIRE-3.3
 **Title:** Smoke Without Confirmed Flame Source
