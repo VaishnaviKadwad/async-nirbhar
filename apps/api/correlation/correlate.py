@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Literal
 from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from apps.api.models.evidence import Evidence
 from apps.api.rules.engine import evaluate
@@ -21,6 +21,7 @@ class Incident(BaseModel):
     response: str
     escalate_if: str
     deescalate_if: str
+    unavailable_sources: list[str] = Field(default_factory=list)
 
 
 def _occurred_at(evidence: Evidence) -> datetime:
@@ -64,6 +65,13 @@ def _make_incident(group: list[Evidence], timestamps: list[datetime]) -> Inciden
         response=rule_result["response"] or "no_action",
         escalate_if=rule_result["escalate_if"],
         deescalate_if=rule_result["deescalate_if"],
+        unavailable_sources=sorted(
+            {
+                evidence.source_type
+                for evidence in group
+                if evidence.state == "unavailable"
+            }
+        ),
     )
 
 

@@ -80,3 +80,124 @@ def test_evidence_in_different_zones_never_group_together():
     assert len(incidents) == 2
     assert all(len(incident.evidence) == 1 for incident in incidents)
     assert {incident.zone_id for incident in incidents} == {"room-a", "room-b"}
+
+
+def test_unavailable_sensor_is_listed_without_changing_positive_rule_status():
+    positive_evidence = [
+        make_evidence(
+            evidence_id="positive-report",
+            kind="report",
+            source_type="student",
+            occurred_at="2026-01-01T12:00:00Z",
+            text="Smoke and heat near the electrical room.",
+        ),
+        make_evidence(
+            evidence_id="positive-temperature",
+            kind="sensor",
+            source_type="temperature_sensor",
+            occurred_at="2026-01-01T12:05:00Z",
+        ),
+    ]
+    unavailable_group = [
+        *positive_evidence,
+        make_evidence(
+            evidence_id="unavailable-smoke",
+            kind="sensor",
+            source_type="smoke_sensor",
+            occurred_at="2026-01-01T12:03:00Z",
+            state="unavailable",
+        ),
+    ]
+
+    positive_incident = correlate(positive_evidence)[0]
+    incident = correlate(unavailable_group)[0]
+
+    assert incident.unavailable_sources == ["smoke_sensor"]
+    assert incident.status == positive_incident.status
+
+
+def test_group_without_unavailable_evidence_has_empty_unavailable_sources():
+    incident = correlate(
+        [
+            make_evidence(
+                evidence_id="normal-report",
+                kind="report",
+                source_type="student",
+                occurred_at="2026-01-01T12:00:00Z",
+                state="normal",
+            )
+        ]
+    )[0]
+
+    assert incident.unavailable_sources == []
+
+
+def test_all_unavailable_group_keeps_normal_status_and_lists_sources():
+    incident = correlate(
+        [
+            make_evidence(
+                evidence_id="unavailable-smoke",
+                kind="sensor",
+                source_type="smoke_sensor",
+                occurred_at="2026-01-01T12:00:00Z",
+                state="unavailable",
+            ),
+            make_evidence(
+                evidence_id="unavailable-temperature",
+                kind="sensor",
+                source_type="temperature_sensor",
+                occurred_at="2026-01-01T12:01:00Z",
+                state="unavailable",
+            ),
+            make_evidence(
+                evidence_id="unavailable-smoke-again",
+                kind="sensor",
+                source_type="smoke_sensor",
+                occurred_at="2026-01-01T12:02:00Z",
+                state="unavailable",
+            ),
+        ]
+    )[0]
+
+    assert incident.status == "normal"
+    assert incident.unavailable_sources == ["smoke_sensor", "temperature_sensor"]
+
+
+def test_unavailable_smoke_sensor_does_not_change_status_with_positive_signals():
+    positive_evidence = [
+        make_evidence(
+            evidence_id="positive-report-1",
+            kind="report",
+            source_type="student",
+            occurred_at="2026-01-01T12:00:00Z",
+            text="Smoke and heat near the electrical room.",
+        ),
+        make_evidence(
+            evidence_id="positive-report-2",
+            kind="report",
+            source_type="student",
+            occurred_at="2026-01-01T12:02:00Z",
+            text="Smoke and heat near the electrical room.",
+        ),
+        make_evidence(
+            evidence_id="positive-temperature",
+            kind="sensor",
+            source_type="temperature_sensor",
+            occurred_at="2026-01-01T12:04:00Z",
+        ),
+    ]
+    unavailable_smoke = make_evidence(
+        evidence_id="unavailable-smoke",
+        kind="sensor",
+        source_type="smoke_sensor",
+        occurred_at="2026-01-01T12:03:00Z",
+        state="unavailable",
+    )
+
+    baseline_incident = correlate(positive_evidence)[0]
+    incident_with_unavailable_smoke = correlate(
+        [*positive_evidence, unavailable_smoke]
+    )[0]
+
+    assert incident_with_unavailable_smoke.status == baseline_incident.status
+    assert incident_with_unavailable_smoke.unavailable_sources == ["smoke_sensor"]
