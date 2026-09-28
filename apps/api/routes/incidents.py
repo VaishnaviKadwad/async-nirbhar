@@ -6,10 +6,19 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from apps.api.audit import audit_log
-from tests.fixtures.mock_incident import get_incident, list_incidents
+from apps.api.correlation import query
 
 
 router = APIRouter()
+
+
+def list_incidents() -> list[dict]:
+    return [incident.model_dump(mode="json") for incident in query.list_incidents()]
+
+
+def get_incident(incident_id: str) -> dict | None:
+    incident = query.get_incident(incident_id)
+    return incident.model_dump(mode="json") if incident is not None else None
 
 
 class DecisionRequest(BaseModel):

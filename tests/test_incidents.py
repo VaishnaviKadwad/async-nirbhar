@@ -5,9 +5,18 @@ import pytest
 from fastapi.testclient import TestClient
 
 from apps.api.main import app
+from apps.api.routes import incidents as incidents_routes
+from tests.fixtures import mock_incident as mock_incident_fixture
 
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def use_fixed_mock_incident(monkeypatch):
+    # These tests exercise decision/audit logic against a fixed incident; real correlation is covered by the hero-scenario integration test.
+    monkeypatch.setattr(incidents_routes, "list_incidents", mock_incident_fixture.list_incidents)
+    monkeypatch.setattr(incidents_routes, "get_incident", mock_incident_fixture.get_incident)
 
 
 @pytest.fixture
