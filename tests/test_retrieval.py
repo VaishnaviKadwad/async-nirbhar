@@ -12,3 +12,9 @@ def test_unrelated_query_triggers_review_required():
     result = retrieve_sop("someone left their bicycle parked in the corridor")
     assert result["status"] == "review_required"
     assert result["match"] is None
+
+def test_factory_pack_retrieval():
+    query = "Boiler temperature spike and steam pressure rising in bay 2"
+    result = retrieve_sop(query, pack_name="factory")
+    assert result["status"] == "matched"
+    assert result["match"]["id"] == "FACTORY-HEAT-2.1"
