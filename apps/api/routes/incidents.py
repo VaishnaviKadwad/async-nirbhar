@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import logging
 from typing import Literal
 from uuid import uuid4
 
@@ -8,10 +9,13 @@ from pydantic import BaseModel
 from apps.api.audit import audit_log
 from apps.api.correlation import query
 from apps.api.reasoning.explain import generate_explanation
+from rag.retrieve import retrieve_sop
 
 
 router = APIRouter()
 SOP_CITATION = "Review Required"
+SOP_CONFIDENCE_THRESHOLD = 0.45
+LOGGER = logging.getLogger(__name__)
 
 
 def list_incidents() -> list[dict]:
@@ -57,7 +61,41 @@ class ExplanationResponse(BaseModel):
 
 
 def _with_sop_citation(incident: dict) -> dict:
-    return {**incident, "sop_citation": SOP_CITATION}
+    # The legacy test mock predates B1's unavailable_sources field and has no live SOP-backed query data.
+    if "unavailable_sources" not in incident:
+        return {**incident, "sop_citation": SOP_CITATION, "sop": None}
+
+    evidence_text = " ".join(
+        item["text"].strip()
+        for item in incident.get("evidence", [])
+        if isinstance(item.get("text"), str) and item["text"].strip()
+    )
+    query_text = evidence_text or incident.get("correlation_reason", "")
+    citation = SOP_CITATION
+    sop = None
+
+    if query_text:
+        try:
+            result = retrieve_sop(query_text)
+            match = result.get("match") if isinstance(result, dict) else None
+            score = result.get("score") if isinstance(result, dict) else None
+            if (
+                isinstance(match, dict)
+                and isinstance(match.get("id"), str)
+                and match["id"]
+                and isinstance(score, (int, float))
+                and score >= SOP_CONFIDENCE_THRESHOLD
+            ):
+                citation = match["id"]
+                sop = {
+                    "title": match.get("title"),
+                    "text": match.get("text"),
+                    "score": score,
+                }
+        except Exception:
+            LOGGER.exception("SOP retrieval failed; requiring manual review")
+
+    return {**incident, "sop_citation": citation, "sop": sop}
 
 
 @router.get("/incidents")
@@ -88,7 +126,8 @@ def get_incident_explanation(incident_id: str) -> dict:
             status_code=404,
             detail=f"Incident '{incident_id}' not found",
         )
-    return generate_explanation(incident, SOP_CITATION)
+    citation = _with_sop_citation(incident)["sop_citation"]
+    return generate_explanation(incident, citation)
 
 
 def _decision_payload(

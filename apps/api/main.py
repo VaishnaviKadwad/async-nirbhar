@@ -11,6 +11,7 @@ from apps.api.reasoning.explain import warm_up_ollama
 from apps.api.routes.audit import router as audit_router
 from apps.api.routes.evidence import router as evidence_router
 from apps.api.routes.incidents import list_incidents, router as incidents_router
+from apps.api.routes.zones import router as zones_router
 
 
 @asynccontextmanager
@@ -42,3 +43,4 @@ app.add_middleware(
 app.include_router(audit_router)
 app.include_router(evidence_router)
 app.include_router(incidents_router)
+app.include_router(zones_router)
