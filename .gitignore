@@ -6,3 +6,9 @@ node_modules/
 venv/
 *.db
 data/vector_store/
+.pytest_cache/
+.gstack/
+*.log
+.DS_Store
+.idea/
+.vscode/
