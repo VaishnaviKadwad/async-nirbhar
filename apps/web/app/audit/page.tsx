@@ -22,7 +22,7 @@ export default async function AuditPage() {
         </nav>
       </header>
       <main className="audit-main">
-        <Link className="back-link" href="/">← Back to evidence intake</Link>
+        <Link className="back-link" href="/">← Back to Command Center</Link>
         <div className="audit-heading">
           <div>
             <p className="eyebrow">TRACEABILITY / 03</p>

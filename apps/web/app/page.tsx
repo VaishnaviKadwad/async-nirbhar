@@ -1,5 +1,5 @@
-import CommandCenter from "./command-center";
+import MissionControl from "./mission-control";
 
 export default function Home() {
-  return <CommandCenter />;
+  return <MissionControl />;
 }

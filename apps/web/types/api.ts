@@ -46,4 +46,7 @@ export interface AuditEntry {
   actor: string;
   action: string;
   detail: string;
+  severity?: IncidentStatus;
+  outcome?: string;
+  ticket_id?: string | null;
 }

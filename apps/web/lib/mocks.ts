@@ -9,6 +9,8 @@ const auditLog: AuditEntry[] = [
     actor: "system",
     action: "incident_created",
     detail: "Correlated 2 reports + 1 sensor event into incident INC-DEMO-001",
+    severity: "critical_review",
+    outcome: "Incident assembled for officer review",
   },
 ];
 
@@ -129,6 +131,8 @@ export async function submitEvidence(evidence: Omit<Evidence, "id">): Promise<Ev
     actor: evidence.type,
     action: "evidence_submitted",
     detail: `${submittedEvidence.id} submitted for ${evidence.location}`,
+    severity: incident?.status,
+    outcome: "Evidence appended to the review trail",
   });
   return submittedEvidence;
 }
@@ -155,16 +159,19 @@ export async function postDecision(id: string, decision: Decision): Promise<Deci
   }
 
   decidedIncidentIds.add(id);
+  const ticketId = decision.action === "reject" ? null : `TKT-${ticketSequence++}`;
+  const incident = incidents.find((item) => item.id === id);
   auditLog.push({
     timestamp: new Date().toISOString(),
     incident_id: id,
     actor: decision.officer_id,
     action: decision.action,
     detail: decision.reason,
+    severity: incident?.status,
+    outcome: ticketId ? "Response ticket created" : "No response ticket created",
+    ticket_id: ticketId,
   });
-  return {
-    ticket_id: decision.action === "reject" ? null : `TKT-${ticketSequence++}`,
-  };
+  return { ticket_id: ticketId };
 }
 
 export async function getAudit(): Promise<AuditEntry[]> {

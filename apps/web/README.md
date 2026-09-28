@@ -8,6 +8,7 @@ Next.js 16 App Router frontend for the NIRBHAR campus safety decision-support wo
 - Development server: port `3000`
 - Backend base URL: `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`)
 - `NEXT_PUBLIC_USE_MOCKS=true` enables the local mock API; set it to `false` for the backend.
+- `NEXT_PUBLIC_DEMO_MODE=true` enables the demo simulation control. Seeded room incidents are served by mock mode.
 
 Run commands from `apps/web`:
 
@@ -25,9 +26,6 @@ The production start command requires `npm run build` first. Configure environme
 
 - `/` — three-room Command Center
 - `/evidence` — evidence intake
-- `/incidents/[id]` — incident review and officer decision
-- `/audit` — chronological audit log
-
 - `/incidents/[id]` — incident review and officer decision
 - `/audit` — chronological audit log
 
