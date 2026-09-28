@@ -6,8 +6,8 @@ Next.js 16 App Router frontend for the NIRBHAR campus safety decision-support wo
 
 - Node.js `>=20.9.0` (validated with Node `24.21.0`)
 - Development server: port `3000`
-- Backend base URL: `NEXT_PUBLIC_API_URL` (defaults to `http://127.0.0.1:8000`)
-- Set `NEXT_PUBLIC_USE_MOCKS=false` and `NEXT_PUBLIC_API_URL=http://127.0.0.1:8000` to use the local backend.
+- Backend API: `http://127.0.0.1:8000`; the browser sends requests through the Next.js `/api/backend` rewrite so this also works when the frontend is opened through a forwarded Codespaces port.
+- Set `NEXT_PUBLIC_USE_MOCKS=false`, `NEXT_PUBLIC_API_URL=/api/backend`, and `API_SERVER_URL=http://127.0.0.1:8000` to use the local backend.
 - `NEXT_PUBLIC_USE_MOCKS=true` enables the local mock API. `NEXT_PUBLIC_DEMO_MODE=true` enables the demo simulation control; leave it disabled when using the real backend.
 
 Run commands from `apps/web`:
@@ -20,7 +20,7 @@ npm run build
 npm run start -- --port 3000
 ```
 
-Start the API separately from the repository root with `uvicorn apps.api.main:app`; the frontend loads incident IDs from `GET /incidents` and fetches each slow explanation separately.
+Start the API separately from the repository root with `uvicorn apps.api.main:app`; start the web app on port `3000`. The frontend loads incident IDs from `GET /incidents` and fetches each slow explanation separately.
 
 The production start command requires `npm run build` first. Configure environment variables at build/runtime as appropriate for the deployment; `NEXT_PUBLIC_*` values are included in the browser bundle.
 
