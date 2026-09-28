@@ -9,6 +9,12 @@ from apps.api.reasoning import explain
 from tests.fixtures.mock_incident import get_mock_incident
 
 
+@pytest.fixture(autouse=True)
+def enable_mocked_llm_path(monkeypatch):
+    # The suite default is LLM disabled (root conftest.py); these tests exercise the LLM path with a mocked client.
+    monkeypatch.setenv("LLM_ENABLED", "true")
+
+
 def _incident():
     return get_mock_incident()
 
