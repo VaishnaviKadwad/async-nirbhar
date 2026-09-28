@@ -71,3 +71,25 @@ potentially on unfamiliar venue hardware/network.
 upgrade path but is not required for the demo to work.
 **Consequences:** One less thing that can fail on unfamiliar venue infrastructure. Vector
 search still works via FAISS/Chroma without a running Postgres instance.
+
+## Incident IDs are deterministic, not stable across evidence changes
+
+Incident ids are generated as a deterministic hash (uuid5) of `zone_id` plus the sorted set
+of evidence ids in that incident. This means:
+
+- The same evidence set always produces the same id, on every call. This fixes an earlier bug
+  where ids were randomly regenerated per call.
+- If new evidence arrives for an already-correlated zone, the incident's id changes to reflect
+  the new evidence set.
+
+Consequence: if an officer views an incident, and new evidence lands for that zone before they
+submit a decision, their decision POST will return 404 because the id they are deciding against
+no longer resolves. This is a safe failure mode, not silent corruption: the request is rejected
+rather than applied to the wrong evidence set.
+
+We considered adding a version/fingerprint field to distinguish "this id never existed" from
+"this id existed but has since changed." This would require a joint contract change across the
+GET `/incidents/{id}` response shape (B1's correlation module, B2's decision endpoint, and C's
+frontend would all need to change). We scoped it out: it requires very specific timing (new
+evidence arriving between an officer's view and decision), and the current safe-failure behavior
+(404, re-fetch, retry) covers it without the added contract risk this close to the deadline.

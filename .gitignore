@@ -1,4 +1,4 @@
-﻿.env
+.env
 __pycache__/
 *.pyc
 node_modules/
@@ -6,3 +6,8 @@ node_modules/
 venv/
 *.db
 data/vector_store/
+
+.pytest_cache/
+.gstack/
+*.sqlite3
+

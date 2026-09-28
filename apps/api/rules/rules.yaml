@@ -1,0 +1,27 @@
+- id: fire-multi-signal
+  when: "report_count >= 1 and smoke_positive and temperature_abnormal"
+  status: critical_review
+  response: restrict_access_and_dispatch_verification
+  escalate_if: "Escalate if additional independent evidence confirms an active fire or immediate danger."
+  deescalate_if: "Deescalate if verification disproves the fire indicators and no credible reports remain."
+
+- id: sensor-led-fire
+  when: "(smoke_positive or temperature_abnormal) and report_count == 0"
+  status: high_priority
+  response: dispatch_verification
+  escalate_if: "Escalate if a credible report confirms the sensor indications or either sensor indicates worsening conditions."
+  deescalate_if: "Deescalate if sensor checks show both readings are false alarms or unavailable."
+
+- id: clustered-reports
+  when: "report_count >= 3 and same_zone_within_minutes <= 15"
+  status: high_priority
+  response: dispatch_verification
+  escalate_if: "Escalate if smoke or abnormal temperature evidence appears, or reports indicate immediate danger."
+  deescalate_if: "Deescalate if verification finds the reports unsubstantiated and no corroborating evidence exists."
+
+- id: single-credible-signal
+  when: "smoke_positive or temperature_abnormal or report_count >= 1"
+  status: attention
+  response: verify_with_sop
+  escalate_if: "Escalate if another independent signal appears or verification confirms an active hazard."
+  deescalate_if: "Deescalate if verification disproves the signal and no other credible evidence remains."
