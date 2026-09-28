@@ -6,3 +6,9 @@ node_modules/
 venv/
 *.db
 data/vector_store/
+
+*.sqlite3
+.pytest_cache/
+
+*.sqlite3
+.pytest_cache/
