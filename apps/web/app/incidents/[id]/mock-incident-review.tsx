@@ -30,7 +30,7 @@ export default function MockIncidentReview({
     };
   }, [id, initialIncident]);
 
-  if (incident) return <IncidentReview incident={incident} />;
+  if (incident) return <IncidentReview incident={incident} showExplanation={false} />;
 
   return (
     <main className="review-main">

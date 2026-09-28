@@ -1,9 +1,9 @@
-import type { Evidence, Incident, Decision, DecisionResult, AuditEntry } from "@/types/api";
+import type { Evidence, Incident, IncidentExplanation, Decision, DecisionResult, AuditEntry } from "@/types/api";
 import { ApiError } from "./api-error";
 import * as mock from "./mocks";
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 async function realFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -70,6 +70,9 @@ function normalizeIncident(value: unknown): Incident {
     id: stringValue(incident.id, "unknown-incident"),
     zone: stringValue(incident.zone, stringValue(incident.zone_id, "unknown-zone")),
     status: normalizedStatus,
+    unavailable_sources: Array.isArray(incident.unavailable_sources)
+      ? incident.unavailable_sources.filter((source): source is string => typeof source === "string")
+      : [],
     evidence: rawEvidence.map(normalizeEvidence),
     correlation_reason: typeof incident.correlation_reason === "string" ? incident.correlation_reason : null,
     citation: citationRecord && typeof citationRecord.id === "string" && typeof citationRecord.title === "string" && typeof citationRecord.excerpt === "string"
@@ -129,6 +132,33 @@ export async function getIncidents(): Promise<Incident[]> {
 export async function getIncident(id: string): Promise<Incident> {
   if (USE_MOCKS) return mock.getIncident(id);
   return normalizeIncident(await realFetch<unknown>(`/incidents/${encodeURIComponent(id)}`, { cache: "no-store" }));
+}
+
+export async function getIncidentExplanation(
+  id: string,
+  signal?: AbortSignal,
+): Promise<IncidentExplanation> {
+  const response = await realFetch<unknown>(
+    `/incidents/${encodeURIComponent(id)}/explanation`,
+    { cache: "no-store", signal },
+  );
+  if (
+    !isRecord(response)
+    || typeof response.summary !== "string"
+    || typeof response.citation !== "string"
+    || (response.uncertainty !== "low" && response.uncertainty !== "medium" && response.uncertainty !== "high")
+    || typeof response.escalate_if !== "string"
+    || typeof response.deescalate_if !== "string"
+  ) {
+    throw new Error("The incident explanation response did not match the expected format.");
+  }
+  return {
+    summary: response.summary,
+    citation: response.citation,
+    uncertainty: response.uncertainty,
+    escalate_if: response.escalate_if,
+    deescalate_if: response.deescalate_if,
+  };
 }
 
 export async function postDecision(id: string, decision: Decision): Promise<DecisionResult | void> {

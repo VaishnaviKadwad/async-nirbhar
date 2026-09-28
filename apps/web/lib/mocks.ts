@@ -19,6 +19,7 @@ const incidentA: Incident = {
   id: "INC-DEMO-001",
   zone: "block-c-electrical-room",
   status: "critical_review",
+  unavailable_sources: [],
   evidence: [
     {
       id: "EV-001",
@@ -64,6 +65,7 @@ const incidentB: Incident = {
   id: "INC-DEMO-002",
   zone: "lab-2",
   status: "attention",
+  unavailable_sources: [],
   evidence: [
     {
       id: "EV-004",
@@ -89,6 +91,7 @@ const incidentC: Incident = {
   id: "INC-DEMO-003",
   zone: "classroom-3",
   status: "normal",
+  unavailable_sources: [],
   evidence: [],
   correlation_reason: null,
   citation: null,

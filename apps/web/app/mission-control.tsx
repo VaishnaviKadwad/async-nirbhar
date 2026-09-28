@@ -7,6 +7,7 @@ import { getAudit, getIncidents, submitEvidence } from "@/lib/api";
 import type { AuditEntry, Incident, IncidentStatus } from "@/types/api";
 import DecisionControls from "./incidents/[id]/decision-controls";
 import HistoricalHeatmap from "./historical-heatmap";
+import UnavailableSourceBadges from "./unavailable-source-badges";
 
 const rooms = [
   { name: "Block C Electrical Room", zone: "block-c-electrical-room", short: "BLK-C / ELEC" },
@@ -259,6 +260,10 @@ export default function MissionControl() {
                     .sort((a, b) => (latestEvidence(b)?.timestamp ?? "").localeCompare(latestEvidence(a)?.timestamp ?? ""))[0];
                   const evidence = latestEvidence(incident);
                   const status = incident?.status ?? "normal";
+                  const hasUnavailableSources = (incident?.unavailable_sources.length ?? 0) > 0;
+                  const statusLabel = status === "normal" && hasUnavailableSources
+                    ? "Sources unavailable"
+                    : statusLabels[status];
                   return (
                     <motion.button
                       className={`room-card room-card-interactive status-edge-${status}`}
@@ -273,14 +278,15 @@ export default function MissionControl() {
                         event.currentTarget.style.setProperty("--pointer-x", `${event.clientX - bounds.left}px`);
                         event.currentTarget.style.setProperty("--pointer-y", `${event.clientY - bounds.top}px`);
                       }}
-                      aria-label={`Open ${room.name} details. Status: ${statusLabels[status]}.`}
+                      aria-label={`Open ${room.name} details. Status: ${statusLabel}.`}
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.07 }}
                     >
-                      <span className="room-card-topline"><span>{room.short}</span><span className={`severity-chip severity-${status}`}><i />{statusLabels[status]}</span></span>
+                      <span className="room-card-topline"><span>{room.short}</span><span className={`severity-chip severity-${status}`}><i />{statusLabel}</span></span>
                       <span className="room-card-title">{room.name}</span>
-                      <span className="room-status-line"><span className={`status-ring status-ring-${status}`} /><span>{status === "normal" ? "No active signals" : "Officer review pending"}</span></span>
+                      <span className="room-status-line"><span className={`status-ring status-ring-${status}`} /><span>{hasUnavailableSources ? "Source data unavailable; verify assessment" : status === "normal" ? "No active signals" : "Officer review pending"}</span></span>
+                      {incident && <UnavailableSourceBadges sources={incident.unavailable_sources} />}
                       <svg className="signal-sparkline" viewBox="0 0 100 40" role="img" aria-label={`${incident?.evidence.length ?? 0} evidence signals in sequence`}>
                         <polyline points={signalPoints(incident)} />
                       </svg>
@@ -332,7 +338,8 @@ export default function MissionControl() {
               <div className="drawer-body">
                 {selectedIncident ? (
                   <>
-                    <div className="drawer-incident-meta"><span className={`severity-chip severity-${selectedIncident.status}`}><i />{statusLabels[selectedIncident.status]}</span><code>{selectedIncident.id}</code></div>
+                    <div className="drawer-incident-meta"><span className={`severity-chip severity-${selectedIncident.status}`}><i />{selectedIncident.status === "normal" && selectedIncident.unavailable_sources.length > 0 ? "Sources unavailable" : statusLabels[selectedIncident.status]}</span><code>{selectedIncident.id}</code></div>
+                    <UnavailableSourceBadges sources={selectedIncident.unavailable_sources} />
                     <section className="drawer-section"><div className="section-heading"><h3>Evidence timeline</h3><span>{selectedIncident.evidence.length} signals</span></div>
                       {selectedIncident.evidence.length ? <ol className="drawer-timeline">{[...selectedIncident.evidence].sort((a, b) => a.timestamp.localeCompare(b.timestamp)).map((evidence) => <li key={evidence.id}><span className="timeline-dot" /><div><time>{formatTimestamp(evidence.timestamp)}</time><strong>{evidence.type.replaceAll("_", " ")}</strong><p>{evidence.description}</p><small>{evidence.location} · {evidence.id}</small></div></li>)}</ol> : <p className="drawer-empty">No evidence is attached to this incident.</p>}
                     </section>

@@ -88,7 +88,7 @@ export default function DecisionControls({
         onRecorded?.();
     } catch (submissionError) {
       if (submissionError instanceof ApiError && submissionError.status === 404) {
-        setError("This incident ID is no longer current or was not found. Return to the Command Center and refresh the incident list.");
+        setError("This incident is missing or changed after new evidence. Return to the Command Center and refresh the incident list.");
       } else if (submissionError instanceof ApiError && submissionError.status === 409) {
         setError("A decision has already been recorded for this incident. Refresh the Command Center before reviewing it again.");
       } else if (submissionError instanceof ApiError && submissionError.status === 422) {

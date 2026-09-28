@@ -24,11 +24,20 @@ export interface Incident {
   id: string;
   zone: string;
   status: IncidentStatus;
+  unavailable_sources: string[];
   evidence: Evidence[];
   correlation_reason: string | null;
   citation: SopCitation | null;   // null when review_required
   citation_status?: string;
   recommendation: Recommendation | null;
+}
+
+export interface IncidentExplanation {
+  summary: string;
+  citation: string;
+  uncertainty: "low" | "medium" | "high";
+  escalate_if: string;
+  deescalate_if: string;
 }
 
 export interface Decision {
