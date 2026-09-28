@@ -9,12 +9,11 @@ from pydantic import BaseModel
 from apps.api.audit import audit_log
 from apps.api.correlation import query
 from apps.api.reasoning.explain import generate_explanation
-from rag.retrieve import retrieve_sop
+from rag.retrieve import THRESHOLD, retrieve_sop
 
 
 router = APIRouter()
 SOP_CITATION = "Review Required"
-SOP_CONFIDENCE_THRESHOLD = 0.45
 LOGGER = logging.getLogger(__name__)
 
 
@@ -84,7 +83,7 @@ def _with_sop_citation(incident: dict) -> dict:
                 and isinstance(match.get("id"), str)
                 and match["id"]
                 and isinstance(score, (int, float))
-                and score >= SOP_CONFIDENCE_THRESHOLD
+                and score >= THRESHOLD
             ):
                 citation = match["id"]
                 sop = {

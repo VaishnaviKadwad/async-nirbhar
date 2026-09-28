@@ -6,9 +6,8 @@ from apps.api.correlation.query import zones_status
 router = APIRouter()
 HERO_ZONE_IDS = [
     "block-c-electrical-room",
-    "room-a",
-    "room-b",
-    "room-c",
+    "lab-2",
+    "classroom-3",
 ]
 
 

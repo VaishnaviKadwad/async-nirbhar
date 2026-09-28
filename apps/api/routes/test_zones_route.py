@@ -7,9 +7,8 @@ from apps.api.routes import zones as zones_route
 def test_get_zones_uses_known_zone_ids_and_returns_query_status(monkeypatch):
     expected_zone_ids = [
         "block-c-electrical-room",
-        "room-a",
-        "room-b",
-        "room-c",
+        "lab-2",
+        "classroom-3",
     ]
     expected_status = {
         zone_id: {

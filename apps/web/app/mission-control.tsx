@@ -3,8 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { getAudit, getIncidents, submitEvidence } from "@/lib/api";
-import type { AuditEntry, Incident, IncidentStatus } from "@/types/api";
+import { getAudit, getIncidents, getZones, submitEvidence } from "@/lib/api";
+import type { AuditEntry, Incident, IncidentStatus, ZoneStatuses } from "@/types/api";
 import DecisionControls from "./incidents/[id]/decision-controls";
 import HistoricalHeatmap from "./historical-heatmap";
 
@@ -60,6 +60,7 @@ function Metric({ label, value, detail, tone }: { label: string; value: number; 
 
 export default function MissionControl() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [zoneStatuses, setZoneStatuses] = useState<ZoneStatuses>({});
   const [activity, setActivity] = useState<AuditEntry[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -80,12 +81,14 @@ export default function MissionControl() {
       setIsRefreshing(true);
       setError(null);
       try {
-        const [currentIncidents, currentActivity] = await Promise.all([
+        const [currentIncidents, currentActivity, currentZones] = await Promise.all([
           getIncidents(),
           getAudit().catch(() => []),
+          getZones().catch(() => ({})),
         ]);
         if (!isCurrent) return;
         setIncidents(currentIncidents);
+        setZoneStatuses(currentZones);
         setActivity(currentActivity.sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 8));
         setHasLoaded(true);
         setLastUpdated(new Date().toISOString());
@@ -257,8 +260,13 @@ export default function MissionControl() {
                 {rooms.map((room, index) => {
                   const incident = incidents.filter((candidate) => candidate.zone === room.zone)
                     .sort((a, b) => (latestEvidence(b)?.timestamp ?? "").localeCompare(latestEvidence(a)?.timestamp ?? ""))[0];
+                  const zoneStatus = zoneStatuses[room.zone];
                   const evidence = latestEvidence(incident);
-                  const status = incident?.status ?? "normal";
+                  const status = zoneStatus?.status ?? incident?.status ?? "normal";
+                  const unavailableSources = zoneStatus?.unavailable_sources ?? incident?.unavailable_sources ?? [];
+                  const roomStatus = unavailableSources.length
+                    ? `Sensor unavailable: ${unavailableSources.join(", ")}`
+                    : status === "normal" ? "No active signals" : "Officer review pending";
                   return (
                     <motion.button
                       className={`room-card room-card-interactive status-edge-${status}`}
@@ -280,7 +288,7 @@ export default function MissionControl() {
                     >
                       <span className="room-card-topline"><span>{room.short}</span><span className={`severity-chip severity-${status}`}><i />{statusLabels[status]}</span></span>
                       <span className="room-card-title">{room.name}</span>
-                      <span className="room-status-line"><span className={`status-ring status-ring-${status}`} /><span>{status === "normal" ? "No active signals" : "Officer review pending"}</span></span>
+                      <span className="room-status-line"><span className={`status-ring status-ring-${status}`} /><span>{roomStatus}</span></span>
                       <svg className="signal-sparkline" viewBox="0 0 100 40" role="img" aria-label={`${incident?.evidence.length ?? 0} evidence signals in sequence`}>
                         <polyline points={signalPoints(incident)} />
                       </svg>
