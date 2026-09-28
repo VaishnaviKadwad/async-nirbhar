@@ -2,10 +2,11 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAudit, getIncidents, submitEvidence } from "@/lib/api";
 import type { AuditEntry, Incident, IncidentStatus } from "@/types/api";
 import DecisionControls from "./incidents/[id]/decision-controls";
+import HistoricalHeatmap from "./historical-heatmap";
 
 const rooms = [
   { name: "Block C Electrical Room", zone: "block-c-electrical-room", short: "BLK-C / ELEC" },
@@ -67,6 +68,8 @@ export default function MissionControl() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [now, setNow] = useState(0);
   const [selectedRoomZone, setSelectedRoomZone] = useState<string | null>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  const drawerTriggerRef = useRef<HTMLElement | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -113,11 +116,29 @@ export default function MissionControl() {
 
   useEffect(() => {
     if (!selectedRoomZone) return;
+    const drawer = drawerRef.current;
+    const controls = drawer?.querySelectorAll<HTMLElement>("button, a, input, textarea, select, [tabindex]:not([tabindex='-1'])") ?? [];
+    controls[0]?.focus();
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") setSelectedRoomZone(null);
     }
+    function keepFocusInside(event: KeyboardEvent) {
+      if (event.key !== "Tab" || controls.length === 0) return;
+      if (event.shiftKey && document.activeElement === controls[0]) {
+        event.preventDefault();
+        controls[controls.length - 1]?.focus();
+      } else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) {
+        event.preventDefault();
+        controls[0]?.focus();
+      }
+    }
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    drawer?.addEventListener("keydown", keepFocusInside);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      drawer?.removeEventListener("keydown", keepFocusInside);
+      window.requestAnimationFrame(() => drawerTriggerRef.current?.focus());
+    };
   }, [selectedRoomZone]);
 
   useEffect(() => {
@@ -243,7 +264,10 @@ export default function MissionControl() {
                       className={`room-card room-card-interactive status-edge-${status}`}
                       key={room.zone}
                       type="button"
-                      onClick={() => setSelectedRoomZone(room.zone)}
+                      onClick={(event) => {
+                        drawerTriggerRef.current = event.currentTarget;
+                        setSelectedRoomZone(room.zone);
+                      }}
                       onPointerMove={(event) => {
                         const bounds = event.currentTarget.getBoundingClientRect();
                         event.currentTarget.style.setProperty("--pointer-x", `${event.clientX - bounds.left}px`);
@@ -292,13 +316,15 @@ export default function MissionControl() {
           </aside>
         </div>
 
+        <HistoricalHeatmap />
+
         <div className="human-boundary-banner"><span className="boundary-mark">!</span><p><strong>Recommendation only.</strong> Officer decision required before any response. NIRBHAR does not initiate actions.</p><span className="boundary-lock">HUMAN AUTHORITY</span></div>
       </motion.main>
 
       <AnimatePresence>
         {selectedRoom && (
           <motion.div className="drawer-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedRoomZone(null); }}>
-            <motion.aside className="room-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 28, stiffness: 260 }}>
+            <motion.aside ref={drawerRef} className="room-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 28, stiffness: 260 }}>
               <header className="drawer-header">
                 <div><p className="panel-kicker">ROOM RECORD / {selectedRoom.short}</p><h2 id="drawer-title">{selectedRoom.name}</h2></div>
                 <button className="drawer-close" type="button" aria-label="Close room details" onClick={() => setSelectedRoomZone(null)}>×</button>
@@ -310,7 +336,7 @@ export default function MissionControl() {
                     <section className="drawer-section"><div className="section-heading"><h3>Evidence timeline</h3><span>{selectedIncident.evidence.length} signals</span></div>
                       {selectedIncident.evidence.length ? <ol className="drawer-timeline">{[...selectedIncident.evidence].sort((a, b) => a.timestamp.localeCompare(b.timestamp)).map((evidence) => <li key={evidence.id}><span className="timeline-dot" /><div><time>{formatTimestamp(evidence.timestamp)}</time><strong>{evidence.type.replaceAll("_", " ")}</strong><p>{evidence.description}</p><small>{evidence.location} · {evidence.id}</small></div></li>)}</ol> : <p className="drawer-empty">No evidence is attached to this incident.</p>}
                     </section>
-                    <section className="drawer-section recommendation-box"><p className="panel-kicker">PROPOSED ASSESSMENT</p><h3>Recommendation</h3><p>{selectedIncident.recommendation?.text ?? "No recommendation available. Review the evidence and applicable SOP before deciding."}</p>{selectedIncident.recommendation && <div className="confidence-meter"><div><span>Confidence</span><strong>{Math.round(selectedIncident.recommendation.confidence * 100)}%</strong></div><span className="confidence-track"><i style={{ width: `${selectedIncident.recommendation.confidence * 100}%` }} /></span><small>Uncertainty remains visible to the officer.</small></div>}</section>
+                    <section className="drawer-section recommendation-box"><p className="panel-kicker">PROPOSED ASSESSMENT</p><h3>Recommendation</h3><p>{selectedIncident.recommendation?.text ?? "No recommendation available. Review the evidence and applicable SOP before deciding."}</p>{typeof selectedIncident.recommendation?.confidence === "number" && <div className="confidence-meter"><div><span>Confidence</span><strong>{Math.round(selectedIncident.recommendation.confidence * 100)}%</strong></div><span className="confidence-track"><i style={{ width: `${selectedIncident.recommendation.confidence * 100}%` }} /></span><small>Uncertainty remains visible to the officer.</small></div>}</section>
                     {selectedIncident.status !== "normal" ? <DecisionControls incidentId={selectedIncident.id} onRecorded={() => setRefreshVersion((version) => version + 1)} /> : <p className="drawer-empty">No action proposal is pending for this room.</p>}
                   </>
                 ) : <div className="activity-empty"><span className="empty-orbit" /><strong>Room is in normal status</strong><p>No active incident is associated with this room. No response is required.</p></div>}

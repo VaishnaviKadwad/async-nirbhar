@@ -23,6 +23,7 @@ export default function DecisionControls({
   const [officerId, setOfficerId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [decisionRecorded, setDecisionRecorded] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [backendRequiresReason, setBackendRequiresReason] = useState(false);
@@ -82,8 +83,9 @@ export default function DecisionControls({
           ? `${action[0].toUpperCase()}${action.slice(1)} recorded. Response ticket ${ticketId} was created.`
           : `${action[0].toUpperCase()}${action.slice(1)} recorded. A response ticket was created.`);
       }
-          setIsConfirming(false);
-          onRecorded?.();
+      setDecisionRecorded(true);
+        setIsConfirming(false);
+        onRecorded?.();
     } catch (submissionError) {
       if (submissionError instanceof ApiError && submissionError.status === 404) {
         setError("This incident ID is no longer current or was not found. Return to the Command Center and refresh the incident list.");
@@ -117,6 +119,7 @@ export default function DecisionControls({
               key={option.value}
               className={`decision-option decision-${option.value} ${action === option.value ? "selected" : ""}`}
               type="button"
+              disabled={decisionRecorded || isSubmitting}
               aria-pressed={action === option.value}
               onClick={() => setAction(option.value)}
             >
@@ -137,8 +140,8 @@ export default function DecisionControls({
         </div>
         {error && <p className="form-message error-message" role="alert">{error}</p>}
         {message && <p className="form-message success-message" role="status">{message}</p>}
-        <button className="record-decision-button" type="submit" disabled={isSubmitting || !officerId.trim() || (reasonRequired && !reason.trim())}>
-          Review decision
+        <button className="record-decision-button" type="submit" disabled={decisionRecorded || isSubmitting || !officerId.trim() || (reasonRequired && !reason.trim())}>
+          {decisionRecorded ? "Decision recorded" : "Review decision"}
           <span aria-hidden="true">→</span>
         </button>
       </form>

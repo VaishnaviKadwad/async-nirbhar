@@ -6,8 +6,14 @@ import IncidentReview from "./incident-review";
 import { getIncident } from "@/lib/api";
 import type { Incident } from "@/types/api";
 
-export default function MockIncidentReview({ id }: { id: string }) {
-  const [incident, setIncident] = useState<Incident | null>(null);
+export default function MockIncidentReview({
+  id,
+  initialIncident,
+}: {
+  id: string;
+  initialIncident: Incident | null;
+}) {
+  const [incident, setIncident] = useState<Incident | null>(initialIncident);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,14 +21,14 @@ export default function MockIncidentReview({ id }: { id: string }) {
     getIncident(id).then((currentIncident) => {
       if (isCurrent) setIncident(currentIncident);
     }).catch((loadError: unknown) => {
-      if (isCurrent) {
+      if (isCurrent && !initialIncident) {
         setError(loadError instanceof Error ? loadError.message : "Incident could not be loaded.");
       }
     });
     return () => {
       isCurrent = false;
     };
-  }, [id]);
+  }, [id, initialIncident]);
 
   if (incident) return <IncidentReview incident={incident} />;
 

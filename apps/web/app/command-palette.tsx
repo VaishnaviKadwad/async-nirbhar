@@ -15,6 +15,8 @@ const pages = [
 export default function CommandPalette() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -25,7 +27,9 @@ export default function CommandPalette() {
         event.preventDefault();
         if (isOpen) {
           setIsOpen(false);
+          window.requestAnimationFrame(() => returnFocusRef.current?.focus());
         } else {
+          returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
           setQuery("");
           setIsOpen(true);
         }
@@ -63,13 +67,21 @@ export default function CommandPalette() {
     router.push(path);
   }
 
+  function closePalette() {
+    setIsOpen(false);
+    window.requestAnimationFrame(() => returnFocusRef.current?.focus());
+  }
+
   return (
     <>
       <button
         className="palette-trigger"
+        ref={triggerRef}
         type="button"
         aria-label="Open command palette"
+        aria-keyshortcuts="Control+K Meta+K"
         onClick={() => {
+          returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : triggerRef.current;
           setQuery("");
           setIsOpen(true);
         }}
@@ -86,7 +98,7 @@ export default function CommandPalette() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setIsOpen(false);
+              if (event.target === event.currentTarget) closePalette();
             }}
           >
             <motion.section
@@ -120,6 +132,15 @@ export default function CommandPalette() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search pages and rooms…"
                 aria-label="Search pages and rooms"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && results[0]) {
+                    event.preventDefault();
+                    navigate(results[0].path);
+                  } else if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(".palette-result")?.focus();
+                  }
+                }}
               />
               <div className="palette-results" role="group" aria-label="Navigation results">
                 {results.length ? results.map((result) => (

@@ -2380,6 +2380,61 @@ kbd {
 .audit-empty-cell span { display: block; }
 .audit-empty-cell span { margin-top: 5px; color: #8298a0; font-size: 12px; }
 
+.evidence-graph-card { grid-column: 1 / -1; }
+.evidence-graph { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; align-items: stretch; margin: 20px 0 0; padding: 0; list-style: none; }
+.graph-node { min-width: 0; position: relative; display: grid; align-content: start; gap: 5px; padding: 13px; background: #101e25; border: 1px solid #334a55; border-radius: var(--radius-sm); }
+.graph-node:not(.graph-branch)::after { position: absolute; top: 50%; right: -14px; width: 13px; height: 1px; background: #5a727d; content: ""; }
+.graph-officer::after { display: none; }
+.graph-node-type { color: var(--normal); font-family: var(--font-geist-mono), monospace; font-size: 9px; font-weight: 700; }
+.graph-node strong { color: #dce8eb; font-family: var(--font-geist-mono), monospace; font-size: 11px; overflow-wrap: anywhere; }
+.graph-node small { color: #8ea3ab; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.graph-incident { border-color: rgb(121 191 255 / 42%); }
+.graph-branch { min-width: 0; position: relative; display: grid; gap: 6px; padding: 22px 0 0; }
+.graph-branch::before { position: absolute; top: 0; bottom: 0; left: 6px; width: 1px; background: #5a727d; content: ""; }
+.graph-edge-label { position: absolute; top: 0; left: 12px; color: #7d959e; font-family: var(--font-geist-mono), monospace; font-size: 8px; }
+.graph-evidence { margin-left: 15px; padding: 8px; }
+.graph-evidence::before { position: absolute; top: 50%; left: -10px; width: 9px; height: 1px; background: #5a727d; content: ""; }
+.graph-evidence small { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.graph-policy { border-color: rgb(244 201 107 / 40%); }
+.graph-recommendation { border-color: rgb(99 228 208 / 34%); }
+.graph-officer { border-color: rgb(244 201 107 / 50%); background: rgb(65 52 28 / 19%); }
+.graph-caption { margin: 14px 0 0; color: #80959e; font-size: 11px; }
+
+.heatmap-panel { margin-top: 18px; padding: 20px; background: rgb(12 22 29 / 88%); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.heatmap-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.heatmap-heading h2 { margin: 4px 0 0; font-size: 19px; }
+.heatmap-heading .panel-kicker { font-size: 10px; }
+.heatmap-total { color: #9fb2b8; font-family: var(--font-geist-mono), monospace; font-size: 10px; }
+.heatmap-disclaimer { margin: 13px 0; padding: 9px 11px; color: #f1d28b; background: rgb(113 81 31 / 16%); border-left: 2px solid var(--attention); font-size: 12px; font-weight: 650; }
+.heatmap-scroll { overflow-x: auto; }
+.heatmap-table { width: 100%; min-width: 540px; border-collapse: separate; border-spacing: 4px; }
+.heatmap-table th { padding: 7px; color: #93a7ae; font-size: 10px; font-weight: 550; text-align: center; }
+.heatmap-table th:first-child { width: 220px; text-align: left; }
+.heatmap-table tbody th { color: #c8d7da; font-size: 11px; }
+.heatmap-table td { width: 54px; padding: 0; }
+.heat-cell { width: 100%; min-height: 36px; display: grid; place-items: center; color: #9bb0b6; background: #14232a; border: 1px solid #283a42; border-radius: 4px; font-family: var(--font-geist-mono), monospace; font-size: 10px; transition: filter 120ms ease, transform 120ms ease; }
+.heat-cell:hover { filter: brightness(1.4); transform: scale(1.06); }
+.heat-1 { color: #85d9cc; background: rgb(45 130 118 / 24%); border-color: rgb(99 228 208 / 25%); }
+.heat-2 { color: #f4d182; background: rgb(146 108 43 / 31%); border-color: rgb(244 201 107 / 30%); }
+.heat-3 { color: #ffaaaa; background: rgb(157 66 67 / 36%); border-color: rgb(255 119 119 / 36%); }
+.heatmap-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: #82979e; font-family: var(--font-geist-mono), monospace; font-size: 9px; }
+.heatmap-legend { display: flex; align-items: center; gap: 5px; }
+.heatmap-legend i { width: 11px; height: 11px; display: inline-block; margin-left: 7px; border: 1px solid #38505a; border-radius: 2px; }
+
+@media (max-width: 600px) {
+  .heatmap-panel { padding: 14px; }
+  .heatmap-heading { align-items: flex-start; flex-direction: column; }
+  .heatmap-footer { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 760px) {
+  .evidence-graph { grid-template-columns: 1fr; }
+  .graph-node:not(.graph-branch)::after { top: auto; right: auto; bottom: -14px; left: 19px; width: 1px; height: 13px; }
+  .graph-branch { padding: 20px 0 0; }
+  .graph-branch::before { top: 24px; }
+  .graph-edge-label { top: 0; }
+}
+
 @media (max-width: 760px) {
   .audit-main { width: min(100% - 28px, 620px); }
   .audit-toolbar { align-items: stretch; }

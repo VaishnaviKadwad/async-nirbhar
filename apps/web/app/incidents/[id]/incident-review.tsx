@@ -1,5 +1,6 @@
 import Link from "next/link";
 import DecisionControls from "./decision-controls";
+import EvidenceGraph from "./evidence-graph";
 import type { Evidence, Incident, IncidentStatus } from "@/types/api";
 
 const statusLabels: Record<IncidentStatus, string> = {
@@ -89,6 +90,8 @@ export default function IncidentReview({ incident }: { incident: Incident }) {
             )}
           </section>
 
+          <EvidenceGraph incident={incident} />
+
           <section className="review-card citation-card" aria-labelledby="citation-title">
             <div className="card-heading">
               <div>
@@ -104,7 +107,7 @@ export default function IncidentReview({ incident }: { incident: Incident }) {
                 <p className="citation-note">Exact source excerpt supplied for officer review.</p>
               </div>
             ) : (
-              <p className="empty-state">No governing SOP citation is available for this review.</p>
+              <p className="empty-state">{incident.citation_status ?? "No governing SOP citation is available for this review."}</p>
             )}
           </section>
 
@@ -119,19 +122,23 @@ export default function IncidentReview({ incident }: { incident: Incident }) {
             {incident.recommendation ? (
               <>
                 <p className="recommendation-text">{incident.recommendation.text}</p>
-                <div className="confidence-row">
-                  <div>
-                    <span className="confidence-label">Confidence</span>
-                    <strong>{Math.round(incident.recommendation.confidence * 100)}%</strong>
+                {typeof incident.recommendation.confidence === "number" && (
+                  <div className="confidence-row">
+                    <div>
+                      <span className="confidence-label">Confidence</span>
+                      <strong>{Math.round(incident.recommendation.confidence * 100)}%</strong>
+                    </div>
+                    <div className="confidence-track" aria-label={`${Math.round(incident.recommendation.confidence * 100)} percent confidence`}>
+                      <span style={{ width: `${incident.recommendation.confidence * 100}%` }} />
+                    </div>
                   </div>
-                  <div className="confidence-track" aria-label={`${Math.round(incident.recommendation.confidence * 100)} percent confidence`}>
-                    <span style={{ width: `${incident.recommendation.confidence * 100}%` }} />
+                )}
+                {incident.recommendation.what_would_change_my_mind && (
+                  <div className="change-mind-panel">
+                    <p className="note-label">WHAT WOULD CHANGE MY MIND</p>
+                    <p>{incident.recommendation.what_would_change_my_mind}</p>
                   </div>
-                </div>
-                <div className="change-mind-panel">
-                  <p className="note-label">WHAT WOULD CHANGE MY MIND</p>
-                  <p>{incident.recommendation.what_would_change_my_mind}</p>
-                </div>
+                )}
               </>
             ) : (
               <p className="empty-state">No recommendation has been generated.</p>

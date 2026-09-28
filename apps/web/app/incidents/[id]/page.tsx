@@ -11,7 +11,10 @@ export default async function IncidentDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (useMocks) return <MockIncidentReview id={id} />;
+  if (useMocks) {
+    const initialIncident = await getIncident(id).catch(() => null);
+    return <MockIncidentReview id={id} initialIncident={initialIncident} />;
+  }
 
   let incident;
 

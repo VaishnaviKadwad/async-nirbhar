@@ -16,7 +16,7 @@ export interface SopCitation {
 
 export interface Recommendation {
   text: string;
-  confidence: number;          // 0–1
+  confidence?: number;         // 0–1, optional when the backend omits it
   what_would_change_my_mind: string;
 }
 
@@ -27,6 +27,7 @@ export interface Incident {
   evidence: Evidence[];
   correlation_reason: string | null;
   citation: SopCitation | null;   // null when review_required
+  citation_status?: string;
   recommendation: Recommendation | null;
 }
 
