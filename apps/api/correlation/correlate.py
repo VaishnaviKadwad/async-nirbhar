@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import re
 from typing import Literal
 from uuid import uuid4
 
@@ -32,8 +33,12 @@ def _occurred_at(evidence: Evidence) -> datetime:
 
 
 def _mock_text_similarity(first: str, second: str) -> float:
-    """Placeholder similarity score; Member A will replace this with embeddings."""
-    return 0.85 if first.strip() and second.strip() else 0.0
+    """Estimate report similarity using the Dice coefficient over normalized words."""
+    first_words = set(re.findall(r"\w+", first.casefold()))
+    second_words = set(re.findall(r"\w+", second.casefold()))
+    if not first_words or not second_words:
+        return 0.0
+    return 2 * len(first_words & second_words) / (len(first_words) + len(second_words))
 
 
 def _reports_are_similar(candidate: Evidence, group: list[Evidence]) -> bool:

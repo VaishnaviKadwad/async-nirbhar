@@ -82,6 +82,30 @@ def test_evidence_in_different_zones_never_group_together():
     assert {incident.zone_id for incident in incidents} == {"room-a", "room-b"}
 
 
+def test_unrelated_reports_in_same_zone_do_not_group_together():
+    evidence = [
+        make_evidence(
+            evidence_id="report-fire",
+            kind="report",
+            source_type="student",
+            occurred_at="2026-01-01T12:00:00Z",
+            text="Smoke and heat near the electrical room.",
+        ),
+        make_evidence(
+            evidence_id="report-bicycle",
+            kind="report",
+            source_type="student",
+            occurred_at="2026-01-01T12:02:00Z",
+            text="A bicycle is blocking the corridor entrance.",
+        ),
+    ]
+
+    incidents = correlate(evidence)
+
+    assert len(incidents) == 2
+    assert all(len(incident.evidence) == 1 for incident in incidents)
+
+
 def test_unavailable_sensor_is_listed_without_changing_positive_rule_status():
     positive_evidence = [
         make_evidence(

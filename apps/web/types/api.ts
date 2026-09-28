@@ -25,6 +25,7 @@ export interface Incident {
   zone: string;
   status: IncidentStatus;
   evidence: Evidence[];
+  unavailable_sources: string[];
   correlation_reason: string | null;
   citation: SopCitation | null;   // null when review_required
   citation_status?: string;

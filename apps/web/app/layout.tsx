@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, JetBrains_Mono } from "next/font/google";
 import ClientShell from "./client-shell";
 import "./globals.css";
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   description: "Campus safety signals for human officer review.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html
       lang="en"

@@ -42,6 +42,7 @@ const incidentA: Incident = {
       timestamp: "2026-09-27T08:58:00Z",
     },
   ],
+  unavailable_sources: [],
   correlation_reason:
     "3 signals within a 15-minute window, same zone (Block C Electrical Room), same category (fire) — sensor reading corroborated by two independent human reports.",
   citation: {
@@ -73,6 +74,7 @@ const incidentB: Incident = {
       timestamp: "2026-09-27T09:10:00Z",
     },
   ],
+  unavailable_sources: [],
   correlation_reason:
     "Single sensor signal, no corroborating human report yet — below the multi-signal confirmation threshold.",
   citation: null,
@@ -90,6 +92,7 @@ const incidentC: Incident = {
   zone: "classroom-3",
   status: "normal",
   evidence: [],
+  unavailable_sources: [],
   correlation_reason: null,
   citation: null,
   recommendation: null,

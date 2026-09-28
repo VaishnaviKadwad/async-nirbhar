@@ -3,7 +3,7 @@ import { ApiError } from "./api-error";
 import * as mock from "./mocks";
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 async function realFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -71,6 +71,9 @@ function normalizeIncident(value: unknown): Incident {
     zone: stringValue(incident.zone, stringValue(incident.zone_id, "unknown-zone")),
     status: normalizedStatus,
     evidence: rawEvidence.map(normalizeEvidence),
+    unavailable_sources: Array.isArray(incident.unavailable_sources)
+      ? incident.unavailable_sources.filter((source): source is string => typeof source === "string")
+      : [],
     correlation_reason: typeof incident.correlation_reason === "string" ? incident.correlation_reason : null,
     citation: citationRecord && typeof citationRecord.id === "string" && typeof citationRecord.title === "string" && typeof citationRecord.excerpt === "string"
       ? { id: citationRecord.id, title: citationRecord.title, excerpt: citationRecord.excerpt }
