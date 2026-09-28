@@ -6,7 +6,11 @@ const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/backend";
 
 async function realFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  // Server components need an absolute URL; browsers continue through Next's API rewrite.
+  const url = typeof window === "undefined"
+    ? new URL(path, process.env.API_SERVER_URL ?? "http://127.0.0.1:8000").toString()
+    : `${BASE_URL}${path}`;
+  const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });

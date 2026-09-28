@@ -34,7 +34,8 @@ export default function IncidentReview({
   incident: Incident;
   showExplanation?: boolean;
 }) {
-  const statusLabel = incident.status === "normal" && incident.unavailable_sources.length > 0
+  const unavailableSources = incident.unavailable_sources ?? [];
+  const statusLabel = incident.status === "normal" && unavailableSources.length > 0
     ? "Sources unavailable"
     : statusLabels[incident.status];
 
@@ -67,10 +68,10 @@ export default function IncidentReview({
         </div>
 
         <div className="review-grid">
-          {incident.unavailable_sources.length > 0 && (
+          {unavailableSources.length > 0 && (
             <section className="review-card unavailable-sources-card" aria-label="Unavailable evidence sources">
               <p className="panel-kicker">INCOMPLETE SOURCE DATA</p>
-              <UnavailableSourceBadges sources={incident.unavailable_sources} />
+              <UnavailableSourceBadges sources={unavailableSources} />
             </section>
           )}
           <section className="review-card evidence-card" aria-labelledby="evidence-title">
