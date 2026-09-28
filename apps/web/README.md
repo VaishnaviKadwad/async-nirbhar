@@ -25,11 +25,20 @@ Start the API separately from the repository root with `uvicorn apps.api.main:ap
 The production start command requires `npm run build` first. Configure environment variables at build/runtime as appropriate for the deployment; `NEXT_PUBLIC_*` values are included in the browser bundle.
 
 For Vercel, set the project root directory to `apps/web`, set
-`NEXT_PUBLIC_USE_MOCKS=false` and `NEXT_PUBLIC_API_URL=/api/backend`, and set
-`API_SERVER_URL` to the deployed Render API URL. The Next.js rewrite proxies
-browser API requests to that URL, and server-side requests use it directly.
-The API can be deployed from the repository root using the included
-`render.yaml` Blueprint.
+`NEXT_PUBLIC_USE_MOCKS=false`, `NEXT_PUBLIC_DEMO_MODE=false`, and
+`NEXT_PUBLIC_API_URL=/api/backend`, and set `API_SERVER_URL` to the deployed
+Render API URL for every Vercel environment. The Next.js rewrite proxies browser
+API requests to that URL, and server-side requests use it directly.
+
+Deploy the API from the repository root using `render.yaml`. The Blueprint
+requires a Render Standard web service and a persistent disk for SQLite evidence,
+audit data, and the downloaded CPU sentence-transformer model. It runs one
+worker; do not scale this SQLite-backed service horizontally. Configure the
+Blueprint's `CORS_ORIGINS` prompt with the exact production Vercel origin, for
+example `https://your-project.vercel.app` (no trailing slash). Keep
+`LLM_ENABLED=false` unless a separately hosted, reachable Ollama service has
+been configured. Make backups of the persistent disk before deployments or
+maintenance.
 
 ## Routes
 
@@ -40,10 +49,11 @@ The API can be deployed from the repository root using the included
 
 ## Integration Notes
 
-- Incident, evidence, audit, and ticket responses are normalized at the API boundary to the UI types.
+- Incident, evidence, and audit responses are normalized at the API boundary to the UI types.
+- Evidence submissions, decisions, and audits are stored on the Render persistent disk. Decisions are recorded for officer review; no external dispatch or ticketing action is initiated.
 - The evidence attachment control previews files locally; the current evidence request sends report fields only.
-- The current Member B2 backend branch does not yet expose `POST /evidence`. Real-mode evidence submission will show the backend error until that endpoint is merged.
-- Device heartbeat and historical incident endpoints are not part of the current API contract. The dashboard labels rooms as tracked, and its clearly labeled heatmap uses synthetic sample data only.
+- Device heartbeat is not part of the current API contract. The dashboard's room list is configured, but room status, evidence, and the seven-day heatmap are derived from real API data.
+- The heatmap excludes evidence marked synthetic and is descriptive, not predictive. Configure a real sensor ingestion source before relying on live sensor signals.
 
 ## Next.js References
 

@@ -89,7 +89,7 @@ The real incident ID for exactly this zone and evidence set is `c2b94e3c-cf57-55
 
 ## Correlation and IDs
 
-Evidence is grouped by `zone_id` within 15 minutes of the group's earliest evidence. The report-to-report text-similarity implementation is a placeholder: it returns the constant `0.85` when both report texts are non-empty (and `0.0` otherwise). It does not assess semantic similarity, so correlation is effectively by zone and time, not meaning.
+Evidence is grouped by `zone_id` within 15 minutes of the group's earliest evidence. Report-to-report similarity uses the Dice coefficient over unique case-folded words; it measures lexical overlap, not semantic similarity. Correlation therefore depends on zone, time, and shared words in report text.
 
 Incident IDs are UUID5 hashes of `zone_id` plus the sorted evidence IDs. The ID is stable while that exact evidence set is unchanged. Adding evidence changes the incident ID; a decision submitted against the old ID returns 404 because the old incident no longer resolves. A zone with no evidence has no incident and is treated as `normal` by the zone-status consumer. One positive mild report creates an incident with status `attention`. Classroom 3 (Room C) must have no evidence to remain `normal`.
 
@@ -139,9 +139,9 @@ Request body:
 }
 ```
 
-- `200`: decision recorded. `approve` creates a simulated response ticket; `modify` requires a non-empty reason and also creates a ticket; `reject` requires a non-empty reason and creates no ticket.
+- `200`: decision recorded in the persistent audit log. `modify` and `reject` require a non-empty reason. No external response or dispatch ticket is created; officers remain responsible for carrying out real-world procedures.
 - `404`: incident ID does not resolve.
-- `409`: the incident already has a recorded ticket-creating decision.
+- `409`: the incident already has a recorded approval or modification decision.
 - `422`: `modify` or `reject` has a missing or blank reason.
 
 ### `GET /audit`

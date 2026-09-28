@@ -21,4 +21,4 @@ class Evidence(BaseModel):
     text: Optional[str] = None
     value: Optional[float] = None
     unit: Optional[str] = None
-    synthetic: bool = True
+    synthetic: bool = False

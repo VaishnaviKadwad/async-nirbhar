@@ -6,6 +6,7 @@ export interface Evidence {
   description: string;
   location: string;
   timestamp: string; // ISO 8601
+  synthetic?: boolean;
 }
 
 export type EvidenceSubmission = Omit<Pick<Evidence, "type" | "description" | "location" | "timestamp">, "type"> & {

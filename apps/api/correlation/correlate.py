@@ -32,7 +32,7 @@ def _occurred_at(evidence: Evidence) -> datetime:
     return timestamp.astimezone(timezone.utc)
 
 
-def _mock_text_similarity(first: str, second: str) -> float:
+def _report_text_similarity(first: str, second: str) -> float:
     """Estimate report similarity using the Dice coefficient over normalized words."""
     first_words = set(re.findall(r"\w+", first.casefold()))
     second_words = set(re.findall(r"\w+", second.casefold()))
@@ -48,7 +48,7 @@ def _reports_are_similar(candidate: Evidence, group: list[Evidence]) -> bool:
     for existing in group:
         if existing.kind != "report" or not existing.text:
             continue
-        if _mock_text_similarity(candidate.text, existing.text) < SIMILARITY_THRESHOLD:
+        if _report_text_similarity(candidate.text, existing.text) < SIMILARITY_THRESHOLD:
             return False
     return True
 

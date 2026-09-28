@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 import logging
 from typing import Literal
-from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -32,23 +31,12 @@ class DecisionRequest(BaseModel):
     officer_id: str
 
 
-class SimulatedResponseTicket(BaseModel):
-    ticket_id: str
-    incident_id: str
-    zone_id: str
-    response: str
-    decision_action: Literal["approve", "modify"]
-    officer_id: str
-    reason: str | None
-    created_at: str
-
-
 class DecisionResponse(BaseModel):
     incident_id: str
     action: Literal["approve", "modify", "reject"]
     reason: str | None
     officer_id: str
-    ticket: SimulatedResponseTicket | None
+    ticket: None = None
 
 
 class ExplanationResponse(BaseModel):
@@ -173,30 +161,17 @@ def submit_incident_decision(
             detail="A non-empty reason is required for modify and reject decisions",
         )
 
-    ticket = None
-    outcome = "recorded_no_ticket"
+    outcome = "decision_recorded"
     if decision.action in {"approve", "modify"}:
         outcome = audit_log.append_decision_event(
-            _decision_payload(incident_id, decision, "ticket_created"),
-            ticket_creating=True,
+            _decision_payload(incident_id, decision, "decision_recorded"),
+            reserves_incident=True,
         )
         if outcome == "already_decided":
             raise HTTPException(
                 status_code=409,
                 detail="Incident already has a recorded decision",
             )
-
-        # TEST_PLAN.md still says modify creates no ticket; B2 requires one.
-        ticket = SimulatedResponseTicket(
-            ticket_id=str(uuid4()),
-            incident_id=incident_id,
-            zone_id=incident["zone_id"],
-            response=incident["response"],
-            decision_action=decision.action,
-            officer_id=decision.officer_id,
-            reason=decision.reason,
-            created_at=datetime.now(timezone.utc).isoformat(),
-        )
     else:
         _record_decision(incident_id, decision, outcome)
 
@@ -205,5 +180,4 @@ def submit_incident_decision(
         action=decision.action,
         reason=decision.reason,
         officer_id=decision.officer_id,
-        ticket=ticket,
     )

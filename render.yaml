@@ -2,5 +2,24 @@ services:
   - type: web
     name: async-nirbhar-api
     runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT
+    plan: standard
+    buildCommand: pip install torch==2.8.0+cpu --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
+    startCommand: uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    disk:
+      name: async-nirbhar-data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: NIRBHAR_DB_PATH
+        value: /var/data/evidence.sqlite3
+      - key: NIRBHAR_AUDIT_DB_PATH
+        value: /var/data/audit.db
+      - key: HF_HOME
+        value: /var/data/huggingface
+      - key: LLM_ENABLED
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false

@@ -58,6 +58,7 @@ function normalizeEvidence(value: unknown): Evidence {
     description: stringValue(evidence.description, stringValue(evidence.text, `${source || "Unknown source"} signal`)),
     location: stringValue(evidence.location, stringValue(evidence.zone_id, "Unknown location")),
     timestamp: stringValue(evidence.timestamp, stringValue(evidence.occurred_at, new Date(0).toISOString())),
+    synthetic: evidence.synthetic === true,
   };
 }
 
@@ -73,6 +74,10 @@ function normalizeIncident(value: unknown): Incident {
     : "attention";
   const rawEvidence = Array.isArray(incident.evidence) ? incident.evidence : [];
   const confidence = recommendationValue?.confidence;
+  const recommendationText = stringValue(
+    recommendationValue?.text,
+    stringValue(incident.response).replaceAll("_", " ").replace(/^./, (firstCharacter) => firstCharacter.toUpperCase()),
+  );
   const citationStatus = typeof incident.sop_citation === "string" ? incident.sop_citation : undefined;
   const unavailableSources = Array.isArray(incident.unavailable_sources)
     ? incident.unavailable_sources.filter((source): source is string => typeof source === "string")
@@ -102,11 +107,14 @@ function normalizeIncident(value: unknown): Incident {
     citation,
     citation_status: citationStatus,
     unavailable_sources: unavailableSources,
-    recommendation: recommendationValue && typeof recommendationValue.text === "string"
+    recommendation: recommendationText
       ? {
-          text: recommendationValue.text,
+          text: recommendationText,
           confidence: typeof confidence === "number" ? confidence : undefined,
-          what_would_change_my_mind: stringValue(recommendationValue.what_would_change_my_mind),
+          what_would_change_my_mind: stringValue(
+            recommendationValue?.what_would_change_my_mind,
+            stringValue(incident.deescalate_if),
+          ),
         }
       : null,
   };
@@ -121,8 +129,10 @@ function normalizeAuditEntry(value: unknown): AuditEntry {
   const rawOutcome = stringValue(payload.outcome);
   const outcome = rawOutcome === "ticket_created"
     ? "Response ticket created"
+    : rawOutcome === "decision_recorded"
+      ? "Decision recorded; no external response initiated"
     : rawOutcome === "recorded_no_ticket"
-      ? "No response ticket created"
+      ? "Decision recorded; no external response initiated"
       : rawOutcome === "invalid_reason"
         ? "Decision reason required"
         : rawOutcome === "incident_not_found"

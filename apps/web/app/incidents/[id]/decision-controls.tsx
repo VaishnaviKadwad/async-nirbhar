@@ -59,7 +59,7 @@ export default function DecisionControls({
   async function recordDecision() {
     setIsSubmitting(true);
     try {
-      const result = await postDecision(incidentId, {
+      await postDecision(incidentId, {
         action,
         reason: reason.trim(),
         officer_id: officerId.trim(),
@@ -70,18 +70,14 @@ export default function DecisionControls({
         actor: officerId.trim(),
         action,
         detail: reason.trim(),
-        outcome: action === "reject" ? "No response ticket created" : "Response ticket created",
-        ticket_id: result && "ticket_id" in result ? result.ticket_id : null,
+        outcome: "Decision recorded; no external dispatch integration is configured",
       };
       const existing = JSON.parse(localStorage.getItem("nirbhar-audit-entries") ?? "[]");
       localStorage.setItem("nirbhar-audit-entries", JSON.stringify([...existing, auditEntry]));
       if (action === "reject") {
-        setMessage("Rejection recorded. No response ticket was created.");
+        setMessage("Rejection recorded. No external response was initiated.");
       } else {
-        const ticketId = result && "ticket_id" in result ? result.ticket_id : null;
-        setMessage(ticketId
-          ? `${action[0].toUpperCase()}${action.slice(1)} recorded. Response ticket ${ticketId} was created.`
-          : `${action[0].toUpperCase()}${action.slice(1)} recorded. A response ticket was created.`);
+        setMessage(`${action[0].toUpperCase()}${action.slice(1)} recorded. No external response was initiated.`);
       }
       setDecisionRecorded(true);
         setIsConfirming(false);

@@ -84,6 +84,7 @@ def test_post_evidence_audit_payload_is_json_serializable(
     )
 
     assert response.status_code == 201
+    assert response.json()["synthetic"] is False
     assert len(recorded_events) == 1
     _, recorded_payload = recorded_events[0]
     json.dumps(recorded_payload)

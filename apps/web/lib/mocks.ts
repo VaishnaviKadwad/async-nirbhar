@@ -26,6 +26,7 @@ const incidentA: Incident = {
       description: "Smoke detector triggered — high particulate reading",
       location: "Block C Electrical Room",
       timestamp: "2026-09-27T08:55:00Z",
+      synthetic: true,
     },
     {
       id: "EV-002",
@@ -33,6 +34,7 @@ const incidentA: Incident = {
       description: "Student reported smell of burning near Block C corridor",
       location: "Block C Electrical Room",
       timestamp: "2026-09-27T08:57:00Z",
+      synthetic: true,
     },
     {
       id: "EV-003",
@@ -40,6 +42,7 @@ const incidentA: Incident = {
       description: "Security guard confirmed visible smoke near electrical panel",
       location: "Block C Electrical Room",
       timestamp: "2026-09-27T08:58:00Z",
+      synthetic: true,
     },
   ],
   unavailable_sources: [],
@@ -72,6 +75,7 @@ const incidentB: Incident = {
       description: "Minor temperature spike detected",
       location: "Lab 2",
       timestamp: "2026-09-27T09:10:00Z",
+      synthetic: true,
     },
   ],
   unavailable_sources: [],
@@ -110,7 +114,7 @@ const roomZones: { zone: string; matches: string[] }[] = [
 ];
 
 export async function submitEvidence(evidence: Omit<Evidence, "id">): Promise<Evidence> {
-  const submittedEvidence: Evidence = { ...evidence, id: `EV-${evidenceSequence++}` };
+  const submittedEvidence: Evidence = { ...evidence, id: `EV-${evidenceSequence++}`, synthetic: true };
   const location = evidence.location.toLowerCase();
   const room = roomZones.find(({ matches }) => matches.some((match) => location.includes(match)));
   const incident = room && incidents.find((item) => item.zone === room.zone);

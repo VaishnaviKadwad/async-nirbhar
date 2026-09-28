@@ -29,9 +29,9 @@ function mergeEntries(entries: AuditEntry[]) {
 
 function getOutcome(entry: AuditEntry) {
   if (entry.outcome) return entry.outcome;
-  if (entry.action === "reject") return "No response ticket created";
+  if (entry.action === "reject") return "Rejected; no external response initiated";
   if (entry.action === "approve" || entry.action === "modify") {
-    return entry.ticket_id ? `Ticket ${entry.ticket_id} created` : "Response ticket created";
+    return entry.ticket_id ? `Ticket ${entry.ticket_id} created` : "Decision recorded; no external response initiated";
   }
   if (entry.action === "evidence_submitted") return "Evidence recorded";
   if (entry.action === "incident_created") return "Incident assembled";

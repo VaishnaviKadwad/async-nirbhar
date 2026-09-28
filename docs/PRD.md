@@ -31,7 +31,7 @@ produces delay, inconsistent response, and loss of institutional knowledge whene
 |---|---|---|
 | Student / reporter | Unsure where/how to report | Simple structured report with location + category |
 | Safety officer | Must inspect scattered reports, device status, PDFs | Unified incident view, evidence timeline, SOP citation, approval workflow |
-| Warden / facility team | Receives unclear escalations | Clear, policy-aligned simulated response ticket |
+| Warden / facility team | Receives unclear escalations | Clear, policy-aligned recommendation for officer review; external dispatch integration is not included |
 | Administrator | Cannot learn consistently from prior cases | Audit trail, historical incident search, risk heatmap |
 
 ## 4. Track Alignment (Data → Knowledge → Memory → Reasoning → Action)
@@ -42,7 +42,7 @@ produces delay, inconsistent response, and loss of institutional knowledge whene
 | Knowledge | Ingested SOP documents (Campus pack: fire safety + anti-ragging; Factory pack: PPE/heat) |
 | Memory | Persistent incident store, append-only audit trail, past-incident history |
 | Reasoning | Evidence correlation + retrieval + local LLM explanation, grounded in cited SOP text |
-| Action | Human-approved simulated response — nothing executes without a person approving |
+| Action | Human officer decisions are recorded; no external response executes without a separately configured integration |
 
 PS clause mapping: "privately understand knowledge" → local SOP retrieval. "remember what it
 learns" → audit trail + incident memory. "reason across that information" → correlation +
@@ -58,8 +58,7 @@ retrieval + LLM explanation. "safely execute useful tasks" → mandatory human a
 6. Retrieve relevant SOP sections and cite them exactly
 7. Generate an evidence-backed recommendation, uncertainty statement, and "what would change
    my mind" conditions
-8. Require officer approval, modification, or rejection before a simulated response ticket is
-   created
+8. Require officer approval, modification, or rejection before recording a decision
 9. Save every event to a local append-only audit trail
 10. Three-room demo scenario: confirmed multi-signal incident, sensor-only incident, normal
     control room (proves the system doesn't hallucinate incidents)

@@ -15,3 +15,11 @@ def test_app_waits_for_warmup_before_serving_requests(monkeypatch):
     with TestClient(main.app) as client:
         assert state["warmed"] is True
         assert client.get("/incidents").status_code == 200
+
+
+def test_health_endpoint_reports_ready():
+    with TestClient(main.app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}

@@ -1,9 +1,9 @@
-const days = ["D−6", "D−5", "D−4", "D−3", "D−2", "D−1", "D"];
+import type { Incident } from "@/types/api";
 
-const history = [
-  { room: "Block C Electrical Room", values: [0, 1, 0, 2, 1, 3, 2] },
-  { room: "Lab 2", values: [1, 0, 1, 0, 2, 1, 1] },
-  { room: "Classroom 3", values: [0, 0, 0, 1, 0, 0, 0] },
+const monitoredZones = [
+  { id: "block-c-electrical-room", label: "Block C Electrical Room" },
+  { id: "lab-2", label: "Lab 2" },
+  { id: "classroom-3", label: "Classroom 3" },
 ];
 
 function intensity(count: number) {
@@ -13,23 +13,70 @@ function intensity(count: number) {
   return "heat-3";
 }
 
-export default function HistoricalHeatmap() {
-  const totalSignals = history.reduce((sum, row) => sum + row.values.reduce((daySum, count) => daySum + count, 0), 0);
+function localDateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+export default function HistoricalHeatmap({
+  incidents,
+  loading,
+}: {
+  incidents: Incident[];
+  loading: boolean;
+}) {
+  const now = new Date();
+  const today = localDateKey(now);
+  const todayUtc = new Date(`${today}T00:00:00Z`);
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(todayUtc);
+    date.setUTCDate(date.getUTCDate() - (6 - index));
+    const key = date.toISOString().slice(0, 10);
+    return {
+      key,
+      label: new Intl.DateTimeFormat("en-IN", {
+        timeZone: "UTC",
+        day: "2-digit",
+        month: "short",
+      }).format(date),
+    };
+  });
+  const visibleDays = new Set(days.map((day) => day.key));
+  const counts = new Map<string, number>();
+  for (const incident of incidents) {
+    for (const evidence of incident.evidence) {
+      if (evidence.synthetic) continue;
+      const day = localDateKey(new Date(evidence.timestamp));
+      if (!visibleDays.has(day)) continue;
+      const key = `${incident.zone}:${day}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  const totalSignals = loading ? null : [...counts.values()].reduce((sum, count) => sum + count, 0);
 
   return (
     <section className="heatmap-panel" aria-labelledby="heatmap-title">
       <header className="heatmap-heading">
-        <div><p className="panel-kicker">SEVEN-DAY SAMPLE / SYNTHETIC</p><h2 id="heatmap-title">Historical incident density</h2></div>
-        <span className="heatmap-total">{totalSignals} sample signals</span>
+        <div><p className="panel-kicker">LAST SEVEN DAYS / RECORDED EVIDENCE</p><h2 id="heatmap-title">Evidence by room</h2></div>
+        <span className="heatmap-total">{loading ? "Loading…" : `${totalSignals} recorded signals`}</span>
       </header>
-      <p className="heatmap-disclaimer">Historical synthetic incident density — not predictive risk.</p>
+      <p className="heatmap-disclaimer">Counts reflect non-synthetic evidence recorded by this system. This view is descriptive, not predictive.</p>
       <div className="heatmap-scroll">
         <table className="heatmap-table">
-          <thead><tr><th scope="col">Monitored room</th>{days.map((day) => <th scope="col" key={day}>{day}</th>)}</tr></thead>
-          <tbody>{history.map((row) => <tr key={row.room}><th scope="row">{row.room}</th>{row.values.map((count, index) => <td key={`${row.room}-${days[index]}`}><span className={`heat-cell ${intensity(count)}`} title={`${row.room}: ${count} synthetic signal${count === 1 ? "" : "s"}, ${days[index]}`} aria-label={`${row.room}: ${count} synthetic signal${count === 1 ? "" : "s"}, ${days[index]}`}><span>{count || "·"}</span></span></td>)}</tr>)}</tbody>
+          <thead><tr><th scope="col">Monitored room</th>{days.map((day) => <th scope="col" key={day.key}>{day.label}</th>)}</tr></thead>
+          <tbody>{monitoredZones.map((zone) => <tr key={zone.id}><th scope="row">{zone.label}</th>{days.map((day) => {
+            const count = counts.get(`${zone.id}:${day.key}`) ?? 0;
+            return <td key={`${zone.id}-${day.key}`}><span className={`heat-cell ${intensity(loading ? 0 : count)}`} title={loading ? "Loading evidence history" : `${zone.label}: ${count} recorded signal${count === 1 ? "" : "s"}, ${day.label}`} aria-label={loading ? "Loading evidence history" : `${zone.label}: ${count} recorded signal${count === 1 ? "" : "s"}, ${day.label}`}><span>{loading ? "…" : count || "·"}</span></span></td>;
+          })}</tr>)}</tbody>
         </table>
       </div>
-      <footer className="heatmap-footer"><span>Sample window: D−6 through D</span><span className="heatmap-legend"><i className="heat-0" />0<i className="heat-1" />1<i className="heat-2" />2<i className="heat-3" />3+</span></footer>
+      <footer className="heatmap-footer"><span>Evidence timestamps shown in Asia/Kolkata</span><span className="heatmap-legend"><i className="heat-0" />0<i className="heat-1" />1<i className="heat-2" />2<i className="heat-3" />3+</span></footer>
     </section>
   );
 }

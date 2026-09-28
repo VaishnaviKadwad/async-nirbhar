@@ -54,8 +54,7 @@ def test_get_incident_returns_clear_404_for_unknown_id():
 
 
 @pytest.mark.parametrize("action", ["approve", "modify"])
-def test_approve_and_modify_with_reason_create_tickets(action, isolated_audit_log):
-    # TEST_PLAN.md is stale: B2 requires modify-with-reason to create a ticket; reconcile at merge/QA.
+def test_approve_and_modify_record_decisions_without_fake_tickets(action, isolated_audit_log):
     reason = "Officer's decision rationale" if action == "modify" else None
 
     response = client.post(
@@ -65,14 +64,14 @@ def test_approve_and_modify_with_reason_create_tickets(action, isolated_audit_lo
 
     assert response.status_code == 200
     body = response.json()
-    assert body["ticket"]["decision_action"] == action
-    assert body["ticket"]["response"] == "restrict_access_and_dispatch_verification"
-    assert body["ticket"]["reason"] == reason
-    assert body["ticket"]["officer_id"] == "officer-123"
-    assert isolated_audit_log.get_all_events()[0]["payload"]["outcome"] == "ticket_created"
+    assert body["ticket"] is None
+    assert body["action"] == action
+    assert body["reason"] == reason
+    assert body["officer_id"] == "officer-123"
+    assert isolated_audit_log.get_all_events()[0]["payload"]["outcome"] == "decision_recorded"
 
 
-def test_reject_records_decision_without_creating_ticket(isolated_audit_log):
+def test_reject_records_decision_without_creating_external_response(isolated_audit_log):
     response = client.post(
         "/incidents/INC-DEMO-001/decision",
         json={"action": "reject", "reason": "No hazard found", "officer_id": "officer-123"},
@@ -80,7 +79,7 @@ def test_reject_records_decision_without_creating_ticket(isolated_audit_log):
 
     assert response.status_code == 200
     assert response.json()["ticket"] is None
-    assert isolated_audit_log.get_all_events()[0]["payload"]["outcome"] == "recorded_no_ticket"
+    assert isolated_audit_log.get_all_events()[0]["payload"]["outcome"] == "decision_recorded"
 
 
 @pytest.mark.parametrize("action", ["modify", "reject"])
@@ -105,7 +104,7 @@ def test_unknown_incident_is_checked_before_missing_reason_and_logged(isolated_a
 
 
 @pytest.mark.parametrize("action,reason", [("approve", None), ("modify", "Changed rationale")])
-def test_second_ticket_creating_decision_conflicts_but_is_logged(
+def test_second_approval_or_modification_conflicts_but_is_logged(
     action, reason, isolated_audit_log
 ):
     first = client.post(
@@ -126,7 +125,7 @@ def test_second_ticket_creating_decision_conflicts_but_is_logged(
     assert events[1]["payload"]["outcome"] == "already_decided"
 
 
-def test_reject_remains_allowed_after_ticket_decision(isolated_audit_log):
+def test_reject_remains_allowed_after_approval(isolated_audit_log):
     first = client.post(
         "/incidents/INC-DEMO-001/decision",
         json={"action": "approve", "officer_id": "officer-first"},
@@ -142,7 +141,7 @@ def test_reject_remains_allowed_after_ticket_decision(isolated_audit_log):
     assert len(isolated_audit_log.get_all_events()) == 2
 
 
-def test_concurrent_approve_requests_create_exactly_one_ticket(isolated_audit_log, monkeypatch):
+def test_concurrent_approve_requests_record_exactly_one_decision(isolated_audit_log, monkeypatch):
     monkeypatch.setenv("LLM_ENABLED", "false")
     ready = Barrier(2)
 
@@ -160,11 +159,11 @@ def test_concurrent_approve_requests_create_exactly_one_ticket(isolated_audit_lo
     assert sorted(response.status_code for response in responses) == [200, 409]
     success = next(response for response in responses if response.status_code == 200)
     conflict = next(response for response in responses if response.status_code == 409)
-    assert success.json()["ticket"] is not None
+    assert success.json()["ticket"] is None
     assert conflict.json() == {"detail": "Incident already has a recorded decision"}
 
     outcomes = [event["payload"]["outcome"] for event in isolated_audit_log.get_all_events()]
-    assert sorted(outcomes) == ["already_decided", "ticket_created"]
+    assert sorted(outcomes) == ["already_decided", "decision_recorded"]
 
 
 def test_get_incident_explanation_returns_generated_fields(monkeypatch):

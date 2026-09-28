@@ -84,8 +84,8 @@ export default function MissionControl() {
       try {
         const [currentIncidents, currentActivity, currentZones] = await Promise.all([
           getIncidents(),
-          getAudit().catch(() => []),
-          getZones().catch(() => ({})),
+          getAudit(),
+          getZones(),
         ]);
         if (!isCurrent) return;
         setIncidents(currentIncidents);
@@ -331,7 +331,7 @@ export default function MissionControl() {
           </aside>
         </div>
 
-        <HistoricalHeatmap />
+        <HistoricalHeatmap incidents={incidents} loading={!hasLoaded} />
 
         <div className="human-boundary-banner"><span className="boundary-mark">!</span><p><strong>Recommendation only.</strong> Officer decision required before any response. NIRBHAR does not initiate actions.</p><span className="boundary-lock">HUMAN AUTHORITY</span></div>
       </motion.main>

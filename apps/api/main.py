@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -21,13 +22,26 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+default_cors_origins = "http://localhost:3000,http://127.0.0.1:3000"
+cors_origins = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ORIGINS", default_cors_origins).split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health")
+def health_check() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 app.include_router(audit_router)
 app.include_router(evidence_router)
 app.include_router(incidents_router)

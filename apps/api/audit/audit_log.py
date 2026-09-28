@@ -46,14 +46,14 @@ def append_event(event_type: str, payload: dict) -> None:
             )
 
 
-def append_decision_event(payload: dict, *, ticket_creating: bool) -> str:
-    """Atomically append a decision, claiming the incident's sole ticket if requested."""
+def append_decision_event(payload: dict, *, reserves_incident: bool) -> str:
+    """Atomically record a decision and prevent duplicate approvals for an incident."""
 
     decision_payload = dict(payload)
     with closing(_connect()) as connection:
         connection.execute("BEGIN IMMEDIATE")
         has_ticket = False
-        if ticket_creating:
+        if reserves_incident:
             for event in connection.execute(
                 "SELECT event_type, payload FROM audit_events"
             ):
@@ -61,7 +61,7 @@ def append_decision_event(payload: dict, *, ticket_creating: bool) -> str:
                 if (
                     event["event_type"] == "incident.decision"
                     and stored.get("incident_id") == decision_payload["incident_id"]
-                    and stored.get("outcome") == "ticket_created"
+                    and stored.get("outcome") in {"decision_recorded", "ticket_created"}
                 ):
                     has_ticket = True
                     break
@@ -69,8 +69,8 @@ def append_decision_event(payload: dict, *, ticket_creating: bool) -> str:
         outcome = (
             "already_decided"
             if has_ticket
-            else "ticket_created"
-            if ticket_creating
+            else "decision_recorded"
+            if reserves_incident
             else decision_payload["outcome"]
         )
         decision_payload["outcome"] = outcome
