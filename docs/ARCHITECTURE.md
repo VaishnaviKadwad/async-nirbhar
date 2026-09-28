@@ -48,8 +48,9 @@ as an input to the correlation or reasoning layer.
    deterministic incident status
 4. **Recommend** — LLM (or template fallback) produces a grounded explanation: summary,
    status, steps, evidence, uncertainty, mind-change conditions
-5. **Act** — officer approves/modifies/rejects; only on approval is a simulated response
-   ticket created
+5. **Act** — officer approves/modifies/rejects; approval creates a simulated response ticket,
+   modification with a non-empty reason also creates one, and rejection with a non-empty
+   reason creates none
 6. **Learn** — every step is written to the append-only audit trail; closed incidents become
    searchable precedent and feed the risk heatmap
 
@@ -82,7 +83,7 @@ hardware later with zero change to anything downstream (see DECISIONS.md, ADR-00
 | `/evidence` | POST | Submit a report or sensor event (same schema for both) |
 | `/incidents` | GET | List current incidents with status |
 | `/incidents/{id}` | GET | Full incident detail: evidence, graph, citation, recommendation |
-| `/incidents/{id}/decision` | POST | Officer decision — `approve \| modify \| reject` + reason |
+| `/incidents/{id}/decision` | POST | `approve` creates a ticket; `modify` requires a non-empty reason and creates a ticket; `reject` requires a non-empty reason and creates none. Returns 404 for unknown incident, 409 if a ticket-creating decision is already recorded, or 422 for a missing required reason. |
 | `/audit` | GET | Full append-only audit log |
 | `/policy-packs` | GET | List available packs (campus, factory) |
 | `/policy-packs/switch` | POST | Swap active policy pack |

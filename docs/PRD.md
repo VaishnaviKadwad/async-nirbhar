@@ -58,8 +58,9 @@ retrieval + LLM explanation. "safely execute useful tasks" → mandatory human a
 6. Retrieve relevant SOP sections and cite them exactly
 7. Generate an evidence-backed recommendation, uncertainty statement, and "what would change
    my mind" conditions
-8. Require officer approval, modification, or rejection before a simulated response ticket is
-   created
+8. Require an officer decision: approve creates a simulated response ticket; modify requires a
+   non-empty reason and also creates a ticket; reject requires a non-empty reason and creates
+   no ticket
 9. Save every event to a local append-only audit trail
 10. Three-room demo scenario: confirmed multi-signal incident, sensor-only incident, normal
     control room (proves the system doesn't hallucinate incidents)

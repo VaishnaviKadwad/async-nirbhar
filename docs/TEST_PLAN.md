@@ -16,10 +16,13 @@
 - `POST /evidence` accepts valid report and sensor payloads; rejects malformed ones
 - `GET /incidents` and `GET /incidents/{id}` return correct evidence, correlation reason, and
   citation for the hero scenario
-- `POST /incidents/{id}/decision` requires a reason on modify/reject; rejects a decision
-  payload missing one
-- `POST /incidents/{id}/decision` with `approve` creates exactly one simulated response
-  ticket; with `modify`/`reject`, creates none
+- `POST /incidents/{id}/decision` requires a non-empty reason on modify/reject; returns 422
+  when that reason is missing
+- `POST /incidents/{id}/decision`: `approve` creates exactly one simulated response ticket;
+  `modify` with a non-empty reason also creates one; `reject` with a non-empty reason creates
+  none
+- `POST /incidents/{id}/decision` returns 404 for an unknown incident and 409 when that
+  incident already has a recorded ticket-creating decision
 - `GET /audit` returns every prior event in order, and the entries persist after a restart
 - `POST /policy-packs/switch` correctly changes which SOP corpus and rule set are active (if
   Factory pack is kept)

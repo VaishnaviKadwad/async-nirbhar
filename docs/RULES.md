@@ -21,7 +21,8 @@
 3. A sensor in an "unavailable" state must be displayed as unavailable — it must never be
    silently treated as "normal."
 4. Modify and Reject decisions must always require a written reason; the system must not
-   allow either without one.
+   allow either without one. Approve creates a simulated response ticket, Modify with a
+   non-empty reason also creates one, and Reject with a non-empty reason creates no ticket.
 5. The audit trail is append-only. No UI, API, or internal tool may edit or delete a past
    entry.
 6. Any document or report text ingested into the system is treated as untrusted data — it is

@@ -57,8 +57,10 @@ pack switching, `data/SOURCES.md`
 5. Build the LLM reasoning layer (Ollama call, constrained to summary + citation echo +
    uncertainty + mind-change conditions) with a deterministic template fallback if the LLM is
    unavailable
-6. Build the `/incidents/{id}/decision` endpoint: approve/modify/reject, reason required on
-   modify/reject, only approve creates a simulated response ticket
+6. Build the `/incidents/{id}/decision` endpoint: approve creates a simulated response
+   ticket; modify requires a non-empty reason and also creates a ticket; reject requires a
+   non-empty reason and creates no ticket. Return 404 for an unknown incident, 409 when the
+   incident already has a recorded decision, and 422 when a required reason is missing.
 7. Build the append-only audit writer and the `/audit` endpoint
 8. Write unit tests: positive correlation (Room A hero scenario), negative correlation
    (unrelated location/time), rule-engine status transitions
