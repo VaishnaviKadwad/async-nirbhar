@@ -2,6 +2,8 @@ import Link from "next/link";
 import DecisionControls from "./decision-controls";
 import EvidenceGraph from "./evidence-graph";
 import type { Evidence, Incident, IncidentStatus } from "@/types/api";
+import IncidentExplanation from "./incident-explanation";
+import UnavailableSourceBadges from "@/app/unavailable-source-badges";
 
 const statusLabels: Record<IncidentStatus, string> = {
   normal: "Normal",
@@ -25,7 +27,17 @@ function formatTimestamp(timestamp: string) {
   }).format(new Date(timestamp));
 }
 
-export default function IncidentReview({ incident }: { incident: Incident }) {
+export default function IncidentReview({
+  incident,
+  showExplanation = true,
+}: {
+  incident: Incident;
+  showExplanation?: boolean;
+}) {
+  const statusLabel = incident.status === "normal" && incident.unavailable_sources.length > 0
+    ? "Sources unavailable"
+    : statusLabels[incident.status];
+
   return (
     <div className="review-shell">
       <header className="review-topbar">
@@ -50,11 +62,17 @@ export default function IncidentReview({ incident }: { incident: Incident }) {
           </div>
           <span className={`status-badge status-${incident.status}`}>
             <span className="status-dot" aria-hidden="true" />
-            {statusLabels[incident.status]}
+            {statusLabel}
           </span>
         </div>
 
         <div className="review-grid">
+          {incident.unavailable_sources.length > 0 && (
+            <section className="review-card unavailable-sources-card" aria-label="Unavailable evidence sources">
+              <p className="panel-kicker">INCOMPLETE SOURCE DATA</p>
+              <UnavailableSourceBadges sources={incident.unavailable_sources} />
+            </section>
+          )}
           <section className="review-card evidence-card" aria-labelledby="evidence-title">
             <div className="card-heading">
               <div>
@@ -144,6 +162,8 @@ export default function IncidentReview({ incident }: { incident: Incident }) {
               <p className="empty-state">No recommendation has been generated.</p>
             )}
           </section>
+
+          {showExplanation && <IncidentExplanation incidentId={incident.id} />}
 
           <DecisionControls incidentId={incident.id} />
         </div>

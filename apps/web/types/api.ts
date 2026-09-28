@@ -45,6 +45,13 @@ export interface ZoneStatus {
 
 export type ZoneStatuses = Record<string, ZoneStatus>;
 
+export interface IncidentExplanation {
+  summary: string;
+  citation: string;
+  uncertainty: "low" | "medium" | "high";
+  escalate_if: string;
+  deescalate_if: string;
+}
 export interface Decision {
   action: "approve" | "modify" | "reject";
   reason: string;
