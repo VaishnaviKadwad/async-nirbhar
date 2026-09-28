@@ -50,3 +50,131 @@ def test_get_incident_returns_incident_listed_by_list_incidents(stored_evidence_
 
 def test_get_incident_returns_none_for_nonexistent_id(stored_evidence_database):
     assert incident_query.get_incident("nonexistent-incident-id") is None
+
+
+def _store_evidence(
+    *,
+    evidence_id: str,
+    kind: str,
+    source_type: str,
+    zone_id: str,
+    occurred_at: str,
+    state: str = "positive",
+    text: str | None = None,
+):
+    evidence_store.store_evidence(
+        Evidence(
+            id=evidence_id,
+            kind=kind,
+            category="fire",
+            source_type=source_type,
+            zone_id=zone_id,
+            occurred_at=occurred_at,
+            state=state,
+            text=text,
+        )
+    )
+
+
+def test_zones_status_returns_normal_for_zone_with_no_evidence(stored_evidence_database):
+    assert incident_query.zones_status(["unknown-query-zone"]) == {
+        "unknown-query-zone": {
+            "status": "normal",
+            "incident_id": None,
+            "unavailable_sources": [],
+        }
+    }
+
+
+def test_zones_status_returns_hero_incident_status(stored_evidence_database):
+    zone_id = "query-hero-zone"
+    _store_evidence(
+        evidence_id="query-hero-report",
+        kind="report",
+        source_type="student",
+        zone_id=zone_id,
+        occurred_at="2026-01-01T12:00:00Z",
+        text="Smoke and heat near the electrical room.",
+    )
+    _store_evidence(
+        evidence_id="query-hero-smoke",
+        kind="sensor",
+        source_type="smoke_sensor",
+        zone_id=zone_id,
+        occurred_at="2026-01-01T12:05:00Z",
+    )
+    _store_evidence(
+        evidence_id="query-hero-temperature",
+        kind="sensor",
+        source_type="temperature_sensor",
+        zone_id=zone_id,
+        occurred_at="2026-01-01T12:10:00Z",
+    )
+
+    status = incident_query.zones_status([zone_id])[zone_id]
+
+    assert status["status"] == "critical_review"
+    assert status["incident_id"] is not None
+    assert status["unavailable_sources"] == []
+
+
+def test_zones_status_uses_most_severe_of_separate_incidents(stored_evidence_database):
+    zone_id = "query-multiple-incidents-zone"
+    _store_evidence(
+        evidence_id="query-early-smoke",
+        kind="sensor",
+        source_type="smoke_sensor",
+        zone_id=zone_id,
+        occurred_at="2026-01-01T12:00:00Z",
+    )
+    _store_evidence(
+        evidence_id="query-late-report",
+        kind="report",
+        source_type="student",
+        zone_id=zone_id,
+        occurred_at="2026-01-01T12:16:00Z",
+        text="Smoke and heat near the electrical room.",
+    )
+    _store_evidence(
+        evidence_id="query-late-smoke",
+        kind="sensor",
+        source_type="smoke_sensor",
+        zone_id=zone_id,
+        occurred_at="2026-01-01T12:20:00Z",
+    )
+    _store_evidence(
+        evidence_id="query-late-temperature",
+        kind="sensor",
+        source_type="temperature_sensor",
+        zone_id=zone_id,
+        occurred_at="2026-01-01T12:24:00Z",
+    )
+
+    incidents = [
+        incident for incident in incident_query.list_incidents()
+        if incident.zone_id == zone_id
+    ]
+    status = incident_query.zones_status([zone_id])[zone_id]
+
+    assert len(incidents) == 2
+    assert status["status"] == "critical_review"
+    assert status["incident_id"] == next(
+        incident.id for incident in incidents if incident.status == "critical_review"
+    )
+
+
+def test_zones_status_reports_unavailable_sources(stored_evidence_database):
+    zone_id = "query-unavailable-zone"
+    _store_evidence(
+        evidence_id="query-unavailable-smoke",
+        kind="sensor",
+        source_type="smoke_sensor",
+        zone_id=zone_id,
+        occurred_at="2026-01-01T12:00:00Z",
+        state="unavailable",
+    )
+
+    status = incident_query.zones_status([zone_id])[zone_id]
+
+    assert status["status"] == "normal"
+    assert status["unavailable_sources"] == ["smoke_sensor"]

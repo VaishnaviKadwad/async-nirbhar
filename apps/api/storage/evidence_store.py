@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from sqlalchemy import (
@@ -15,7 +16,12 @@ from sqlalchemy import (
 from apps.api.models.evidence import Evidence
 
 
-DATABASE_PATH = Path(__file__).resolve().with_name("evidence.sqlite3")
+# NIRBHAR_DB_PATH is read once at import time; set it before importing the app or this module in tests.
+DATABASE_PATH = (
+    Path(os.environ["NIRBHAR_DB_PATH"])
+    if os.environ.get("NIRBHAR_DB_PATH")
+    else Path(__file__).resolve().with_name("evidence.sqlite3")
+)
 engine = create_engine(f"sqlite:///{DATABASE_PATH.as_posix()}")
 metadata = MetaData()
 

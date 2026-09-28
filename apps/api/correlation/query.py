@@ -41,6 +41,51 @@ def list_incidents() -> list[Incident]:
     return _current_incidents()
 
 
+def zones_status(zone_ids: list[str]) -> dict[str, dict]:
+    """Return the current status summary for each requested zone.
+
+    An unknown zone id returns normal because this function cannot distinguish a
+    zone with no evidence from a mistyped zone id.
+    """
+    incidents_by_zone: dict[str, list[Incident]] = {}
+    for incident in _current_incidents():
+        incidents_by_zone.setdefault(incident.zone_id, []).append(incident)
+
+    severity = {
+        "normal": 0,
+        "attention": 1,
+        "high_priority": 2,
+        "critical_review": 3,
+    }
+    result: dict[str, dict] = {}
+    for zone_id in zone_ids:
+        zone_incidents = incidents_by_zone.get(zone_id, [])
+        if not zone_incidents:
+            result[zone_id] = {
+                "status": "normal",
+                "incident_id": None,
+                "unavailable_sources": [],
+            }
+            continue
+
+        most_severe = max(
+            zone_incidents,
+            key=lambda incident: (severity[incident.status], incident.id),
+        )
+        result[zone_id] = {
+            "status": most_severe.status,
+            "incident_id": most_severe.id,
+            "unavailable_sources": sorted(
+                {
+                    source
+                    for incident in zone_incidents
+                    for source in incident.unavailable_sources
+                }
+            ),
+        }
+    return result
+
+
 def get_incident(id: str) -> Incident | None:
     """Return the current incident matching `id`, or `None`; an Incident has
     exactly these fields: `id` (str), `zone_id` (str), `evidence`
