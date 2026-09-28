@@ -7,9 +7,11 @@ from pydantic import BaseModel
 
 from apps.api.audit import audit_log
 from apps.api.correlation import query
+from apps.api.reasoning.explain import generate_explanation
 
 
 router = APIRouter()
+SOP_CITATION = "Review Required"
 
 
 def list_incidents() -> list[dict]:
@@ -46,8 +48,16 @@ class DecisionResponse(BaseModel):
     ticket: SimulatedResponseTicket | None
 
 
+class ExplanationResponse(BaseModel):
+    summary: str
+    citation: str
+    uncertainty: Literal["low", "medium", "high"]
+    escalate_if: str
+    deescalate_if: str
+
+
 def _with_sop_citation(incident: dict) -> dict:
-    return {**incident, "sop_citation": "Review Required"}
+    return {**incident, "sop_citation": SOP_CITATION}
 
 
 @router.get("/incidents")
@@ -64,6 +74,21 @@ def get_incident_by_id(incident_id: str) -> dict:
             detail=f"Incident '{incident_id}' not found",
         )
     return _with_sop_citation(incident)
+
+
+@router.get(
+    "/incidents/{incident_id}/explanation",
+    response_model=ExplanationResponse,
+)
+def get_incident_explanation(incident_id: str) -> dict:
+    # The warm LLM call takes 8-14 seconds; the UI should fetch this separately from the incident.
+    incident = get_incident(incident_id)
+    if incident is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Incident '{incident_id}' not found",
+        )
+    return generate_explanation(incident, SOP_CITATION)
 
 
 def _decision_payload(

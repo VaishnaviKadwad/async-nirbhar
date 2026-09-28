@@ -165,3 +165,65 @@ def test_concurrent_approve_requests_create_exactly_one_ticket(isolated_audit_lo
 
     outcomes = [event["payload"]["outcome"] for event in isolated_audit_log.get_all_events()]
     assert sorted(outcomes) == ["already_decided", "ticket_created"]
+
+
+def test_get_incident_explanation_returns_generated_fields(monkeypatch):
+    incident = mock_incident_fixture.get_incident("INC-DEMO-001")
+    explanation = {
+        "summary": "Three signals indicate a fire hazard.",
+        "citation": "Review Required",
+        "uncertainty": "high",
+        "escalate_if": incident["escalate_if"],
+        "deescalate_if": incident["deescalate_if"],
+    }
+    calls = []
+
+    def fake_generate_explanation(actual_incident, citation):
+        calls.append((actual_incident, citation))
+        return explanation
+
+    monkeypatch.setattr(
+        incidents_routes, "generate_explanation", fake_generate_explanation
+    )
+
+    response = client.get("/incidents/INC-DEMO-001/explanation")
+
+    assert response.status_code == 200
+    assert response.json() == explanation
+    assert set(response.json()) == {
+        "summary",
+        "citation",
+        "uncertainty",
+        "escalate_if",
+        "deescalate_if",
+    }
+    assert calls == [(incident, "Review Required")]
+
+
+def test_get_unknown_incident_explanation_does_not_generate(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        incidents_routes,
+        "generate_explanation",
+        lambda *args: calls.append(args),
+    )
+
+    response = client.get("/incidents/not-found/explanation")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Incident 'not-found' not found"}
+    assert calls == []
+
+
+def test_get_incident_explanation_uses_deterministic_fallback(monkeypatch):
+    monkeypatch.setenv("LLM_ENABLED", "false")
+    incident = mock_incident_fixture.get_incident("INC-DEMO-001")
+
+    response = client.get("/incidents/INC-DEMO-001/explanation")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["uncertainty"] == "high"
+    assert body["citation"] == "Review Required"
+    assert body["escalate_if"] == incident["escalate_if"]
+    assert body["deescalate_if"] == incident["deescalate_if"]
