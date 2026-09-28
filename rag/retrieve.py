@@ -1,17 +1,29 @@
-from sentence_transformers import SentenceTransformer
 import faiss
 import pickle
 import numpy as np
+from threading import Lock
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
 THRESHOLD = 0.45  # Rule 2: Gating threshold to prevent hallucinations
+_model = None
+_model_lock = Lock()
+
+
+def _get_model():
+    global _model
+    if _model is None:
+        with _model_lock:
+            if _model is None:
+                from sentence_transformers import SentenceTransformer
+
+                _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
 
 def retrieve_sop(query: str, pack_name: str = "campus", top_k: int = 1):
     index = faiss.read_index(f"data/{pack_name}.index")
     with open(f"data/{pack_name}_meta.pkl", "rb") as f:
         sections = pickle.load(f)
 
-    q_emb = model.encode([query], convert_to_numpy=True)
+    q_emb = _get_model().encode([query], convert_to_numpy=True)
     faiss.normalize_L2(q_emb)
     scores, idxs = index.search(q_emb, top_k)
 

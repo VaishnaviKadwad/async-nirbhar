@@ -1,12 +1,16 @@
-import type { Evidence, Incident, Decision, DecisionResult, AuditEntry } from "@/types/api";
+import type { Evidence, EvidenceSubmission, Incident, IncidentExplanation, Decision, DecisionResult, AuditEntry, ZoneStatus, ZoneStatuses } from "@/types/api";
 import { ApiError } from "./api-error";
 import * as mock from "./mocks";
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/backend";
 
 async function realFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  // Server components need an absolute URL; browsers continue through Next's API rewrite.
+  const url = typeof window === "undefined"
+    ? new URL(path, process.env.API_SERVER_URL ?? "http://127.0.0.1:8000").toString()
+    : `${BASE_URL}${path}`;
+  const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
@@ -33,6 +37,10 @@ function stringValue(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
+function zoneIdFromLocation(location: string): string {
+  return location.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function normalizeEvidence(value: unknown): Evidence {
   const evidence = isRecord(value) ? value : {};
   const source = stringValue(evidence.source_type, stringValue(evidence.type));
@@ -57,6 +65,7 @@ function normalizeIncident(value: unknown): Incident {
   const incident = isRecord(value) ? value : {};
   const citationValue = incident.citation;
   const citationRecord = isRecord(citationValue) ? citationValue : null;
+  const sopRecord = isRecord(incident.sop) ? incident.sop : null;
   const recommendationValue = isRecord(incident.recommendation) ? incident.recommendation : null;
   const status = incident.status;
   const normalizedStatus: Incident["status"] = status === "normal" || status === "attention" || status === "high_priority" || status === "critical_review"
@@ -65,20 +74,34 @@ function normalizeIncident(value: unknown): Incident {
   const rawEvidence = Array.isArray(incident.evidence) ? incident.evidence : [];
   const confidence = recommendationValue?.confidence;
   const citationStatus = typeof incident.sop_citation === "string" ? incident.sop_citation : undefined;
+  const unavailableSources = Array.isArray(incident.unavailable_sources)
+    ? incident.unavailable_sources.filter((source): source is string => typeof source === "string")
+    : [];
+  const citationId = typeof incident.sop_citation === "string" ? incident.sop_citation : undefined;
+  const citation = sopRecord
+    && citationId
+    && citationId !== "Review Required"
+    && typeof sopRecord.title === "string"
+    && typeof sopRecord.text === "string"
+    ? {
+        id: citationId,
+        title: sopRecord.title,
+        excerpt: sopRecord.text,
+        score: typeof sopRecord.score === "number" ? sopRecord.score : undefined,
+      }
+    : citationRecord && typeof citationRecord.id === "string" && typeof citationRecord.title === "string" && typeof citationRecord.excerpt === "string"
+      ? { id: citationRecord.id, title: citationRecord.title, excerpt: citationRecord.excerpt }
+      : null;
 
   return {
     id: stringValue(incident.id, "unknown-incident"),
     zone: stringValue(incident.zone, stringValue(incident.zone_id, "unknown-zone")),
     status: normalizedStatus,
     evidence: rawEvidence.map(normalizeEvidence),
-    unavailable_sources: Array.isArray(incident.unavailable_sources)
-      ? incident.unavailable_sources.filter((source): source is string => typeof source === "string")
-      : [],
     correlation_reason: typeof incident.correlation_reason === "string" ? incident.correlation_reason : null,
-    citation: citationRecord && typeof citationRecord.id === "string" && typeof citationRecord.title === "string" && typeof citationRecord.excerpt === "string"
-      ? { id: citationRecord.id, title: citationRecord.title, excerpt: citationRecord.excerpt }
-      : null,
+    citation,
     citation_status: citationStatus,
+    unavailable_sources: unavailableSources,
     recommendation: recommendationValue && typeof recommendationValue.text === "string"
       ? {
           text: recommendationValue.text,
@@ -117,10 +140,27 @@ function normalizeAuditEntry(value: unknown): AuditEntry {
   };
 }
 
-export async function submitEvidence(evidence: Omit<Evidence, "id">): Promise<Evidence> {
-  return USE_MOCKS
-    ? mock.submitEvidence(evidence)
-    : realFetch("/evidence", { method: "POST", body: JSON.stringify(evidence) });
+export async function submitEvidence(evidence: EvidenceSubmission): Promise<Evidence> {
+  if (USE_MOCKS) return mock.submitEvidence(evidence);
+
+  const sourceType = {
+    student_report: "student",
+    guard_report: "guard",
+    warden_report: "warden",
+  }[evidence.type];
+  const payload = {
+    kind: "report",
+    category: "fire_hazard",
+    source_type: sourceType,
+    zone_id: zoneIdFromLocation(evidence.location),
+    occurred_at: evidence.timestamp,
+    state: "positive",
+    text: evidence.description,
+  };
+  return normalizeEvidence(await realFetch<unknown>("/evidence", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }));
 }
 
 export async function getIncidents(): Promise<Incident[]> {
@@ -129,9 +169,67 @@ export async function getIncidents(): Promise<Incident[]> {
   return Array.isArray(incidents) ? incidents.map(normalizeIncident) : [];
 }
 
+export async function getZones(): Promise<ZoneStatuses> {
+  if (USE_MOCKS) {
+    const incidents = await mock.getIncidents();
+    return Object.fromEntries(["block-c-electrical-room", "lab-2", "classroom-3"].map((zone) => {
+      const incident = incidents.find((item) => item.zone === zone);
+      return [zone, {
+        status: incident?.status ?? "normal",
+        incident_id: incident?.evidence.length ? incident.id : null,
+        unavailable_sources: incident?.unavailable_sources ?? [],
+      }];
+    }));
+  }
+
+  const value = await realFetch<unknown>("/zones", { cache: "no-store" });
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([zone, rawStatus]) => {
+    if (!isRecord(rawStatus)) return [];
+    const status = rawStatus.status;
+    const normalizedStatus: ZoneStatus["status"] = status === "normal" || status === "attention" || status === "high_priority" || status === "critical_review"
+      ? status
+      : "normal";
+    return [[zone, {
+      status: normalizedStatus,
+      incident_id: typeof rawStatus.incident_id === "string" ? rawStatus.incident_id : null,
+      unavailable_sources: Array.isArray(rawStatus.unavailable_sources)
+        ? rawStatus.unavailable_sources.filter((source): source is string => typeof source === "string")
+        : [],
+    } satisfies ZoneStatus]];
+  }));
+}
+
 export async function getIncident(id: string): Promise<Incident> {
   if (USE_MOCKS) return mock.getIncident(id);
   return normalizeIncident(await realFetch<unknown>(`/incidents/${encodeURIComponent(id)}`, { cache: "no-store" }));
+}
+
+export async function getIncidentExplanation(
+  id: string,
+  signal?: AbortSignal,
+): Promise<IncidentExplanation> {
+  const response = await realFetch<unknown>(
+    `/incidents/${encodeURIComponent(id)}/explanation`,
+    { cache: "no-store", signal },
+  );
+  if (
+    !isRecord(response)
+    || typeof response.summary !== "string"
+    || typeof response.citation !== "string"
+    || (response.uncertainty !== "low" && response.uncertainty !== "medium" && response.uncertainty !== "high")
+    || typeof response.escalate_if !== "string"
+    || typeof response.deescalate_if !== "string"
+  ) {
+    throw new Error("The incident explanation response did not match the expected format.");
+  }
+  return {
+    summary: response.summary,
+    citation: response.citation,
+    uncertainty: response.uncertainty,
+    escalate_if: response.escalate_if,
+    deescalate_if: response.deescalate_if,
+  };
 }
 
 export async function postDecision(id: string, decision: Decision): Promise<DecisionResult | void> {

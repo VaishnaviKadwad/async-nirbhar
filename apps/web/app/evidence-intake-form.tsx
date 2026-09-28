@@ -5,7 +5,7 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState, type DragEvent, type FormEvent } from "react";
 import { submitEvidence } from "@/lib/api";
-import type { Evidence } from "@/types/api";
+import type { Evidence, EvidenceSubmission } from "@/types/api";
 
 type ReportType = Exclude<Evidence["type"], "sensor_event">;
 
@@ -71,12 +71,13 @@ export default function EvidenceIntakeForm({
     const campusTimestamp = `${String(submittedAt)}:00+05:30`;
 
     try {
-      const evidence = await submitEvidence({
+      const submission: EvidenceSubmission = {
         type: formData.get("type") as ReportType,
         description: String(formData.get("description")),
         location: String(formData.get("location")),
         timestamp: new Date(campusTimestamp).toISOString(),
-      });
+      };
+      const evidence = await submitEvidence(submission);
       setReceipt(evidence.id);
       setToast(`Evidence ${evidence.id} recorded for officer review.`);
     } catch (submissionError) {

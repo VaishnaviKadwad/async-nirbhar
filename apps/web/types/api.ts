@@ -8,10 +8,15 @@ export interface Evidence {
   timestamp: string; // ISO 8601
 }
 
+export type EvidenceSubmission = Omit<Pick<Evidence, "type" | "description" | "location" | "timestamp">, "type"> & {
+  type: Exclude<Evidence["type"], "sensor_event">;
+};
+
 export interface SopCitation {
   id: string;        // e.g. "CAMPUS-FIRE-3.2"
   title: string;
   excerpt: string;   // exact source text, not a paraphrase
+  score?: number;
 }
 
 export interface Recommendation {
@@ -32,6 +37,21 @@ export interface Incident {
   recommendation: Recommendation | null;
 }
 
+export interface ZoneStatus {
+  status: IncidentStatus;
+  incident_id: string | null;
+  unavailable_sources: string[];
+}
+
+export type ZoneStatuses = Record<string, ZoneStatus>;
+
+export interface IncidentExplanation {
+  summary: string;
+  citation: string;
+  uncertainty: "low" | "medium" | "high";
+  escalate_if: string;
+  deescalate_if: string;
+}
 export interface Decision {
   action: "approve" | "modify" | "reject";
   reason: string;
